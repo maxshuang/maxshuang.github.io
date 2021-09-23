@@ -1,4 +1,2 @@
 # maxshuang.github.io
-github.io blog
-
-# test github action
+Ref to [maxshuang blog](https://maxshuang.github.io)
