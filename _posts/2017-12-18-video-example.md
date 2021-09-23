@@ -9,7 +9,7 @@ tags: [video]
 ## Canon in D (Pachelbel's Canon) - Cello & Piano [BEST WEDDING VERSION]
 Some of you know that we occasionally play for weddings. As you can imagine, we get a LOT of requests for Canon in D, and we discovered that there were no good arrangements available anywhere for piano and cello! Hard to believe given its popularity. So we decided to make our own! We tried to stick as closely to the original as possible (which was written for three violins and basso continuo), and we performed it *not* at a snail's pace so the bride can actually make it down the aisle without putting everyone to sleep. 🙊(Yeah, we said it! Nobody likes a slow processional!) Also, the number one complaint about this piece from cellists is always how booooring it is to play because they literally have to play the same 8 bass notes over and over for the entire piece. Problem solved with this arrangement because the cello never has to play the bass! 🙌(The piano does, but we get lots of other fun stuff too so it's ok!) So for all you musicians out there playing weddings, we hope you enjoy playing this arrangement a little more than the ones you were used to...You can get it from www.musicnotes.com. 😊Be sure to let us know in the comments if you do!
 
-![](//www.youtube.com/watch?v=Ptk_1Dc2iPY)
+![](https://v.qq.com/x/cover/mzc002001cj0ubb.html)
 
 ## GUCCI HALLUCINATION / THE LINE ANIMATION / GUCCI
 BACKGROUND /
