@@ -1,3 +1,23 @@
+---
+layout: post
+title: TiDB Online DDL In TiCDC
+subtitle: pic from https://www.sciencefriday.com/educational-resources/why-do-bees-build-hexagonal-honeycomb-cells/
+author: maxshuang
+categories: dist-SQL TiDB Online-DDL
+banner:
+  image: /assets/images/banners/Beehive-micro_large-min.jpeg 
+  opacity: 0.618
+  background: "#000"
+  height: "100vh"
+  min_height: "38vh"
+  heading_style: "font-size: 4.25em; font-weight: bold; text-decoration: underline"
+  subheading_style: "color: gold"
+tags: TiDB TiCDC Online-DDL
+---
+
+
+
+
 TiDB Online DDL 在 TiCDC 中的应用
 
 引言

@@ -3,6 +3,12 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
 layout: home
-title: Home
-banner: "/assets/images/banners/home.jpeg"
+title:  home
+heading: "行百里者半九十"
+author: maxshuang
+banner:
+  image: /assets/images/banners/home.jpeg  
+  background: "#000"
+  height: "100vh"
+  min_height: "38vh"
 ---
