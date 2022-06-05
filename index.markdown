@@ -3,7 +3,7 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
 layout: home
-title:  home
+title:  "首页"
 heading: "行百里者半九十"
 author: maxshuang
 banner:
