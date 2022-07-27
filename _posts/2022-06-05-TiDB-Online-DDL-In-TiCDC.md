@@ -8,7 +8,7 @@ banner:
   image: /assets/images/banners/Beehive-micro_large-min.jpeg 
   opacity: 0.618
   background: "#000"
-  height: "100vh"
+  height: "70vh"
   min_height: "38vh"
   heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
   subheading_style: "color: gold"
@@ -209,4 +209,4 @@ Online Schema Change 原理出发，详细描述在 schema 变更各个阶段的
 
 
 ## Reference
-[https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf)
+[Online, Asynchronous Schema Change in F1](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf)
