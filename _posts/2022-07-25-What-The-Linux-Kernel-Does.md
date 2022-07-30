@@ -15,7 +15,9 @@ banner:
 tags: Linux-Kernel Preface 
 ---
 
-## 引言
+> 为了更好得设计 Tiflow engine 的资源管控能力，我阅读了《Understanding The Linux Kernel》和思考了 Linux Kernel 关于资源管理的抽象，
+> 1. 越是要提高资源利用率，越要将资源切小  
+> 2. 越是要提高资源管控能力，越是要将要提供整体化的视图  
 
 最近团队在开发一个数据迁移的统一资源调度平台 [Tiflow Engine](https://github.com/pingcap/tiflow/tree/master/engine)，以便统一抽象 Data Platform 团队多个产品的资源调度能力和 Failover 能力。从 DP 产品能力上看，我们其实希望 Tiflow Engine 的最终形态是类似 Flink 这种流式计算框架，通过统一的流式算子抽象和 UDF 构建端到端的数据库同步流。至于为什么不直接使用 Flink 而是重新造一个轮子，这里有技术栈的问题，也有已有业务改造成本问题。我们希望通过制定 Roadmap 逐步构建具备良好流式抽象和 Cloud Native 特性的产品。
 这个 Blog 的目的不是讨论 Tiflow Engine，而是我在思考我们要做的最终东西的过程中想到的关于 Linux Kernel 的问题。
