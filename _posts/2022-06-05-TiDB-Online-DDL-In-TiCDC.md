@@ -17,9 +17,10 @@ tags: Distributed-System TiDB TiCDC Online-DDL
 
 ## 引言
 
-[TiCDC](https://github.com/pingcap/tiflow) 作为 [TiDB](https://github.com/pingcap/tidb) 的数据同步组件，负责直接从 [TiKV](https://github.com/tikv/tikv) 
-感知数据变更同步到下游。其中比较核心的问题是数据解析正确性问题，具体而言就是如何使用正确的 schema 解析 TiKV 传递过来的 Key-Value 数据，从而还原成正确的 
-SQL 或者其他下游支持的形式。本文主要通过对 TiDB Online DDL 机制原理和实现的分析，引出对当前 TiCDC 数据解析实现的讨论。 
+> [TiCDC](https://github.com/pingcap/tiflow) 作为 [TiDB](https://github.com/pingcap/tidb) 的数据同步组件，负责直接从 [TiKV](https://github.com/tikv/tikv) 
+> 感知数据变更同步到下游。其中比较核心的问题是数据解析正确性问题，具体而言就是如何使用正确的 schema 解析 TiKV 传递过来的 Key-Value 数据，从而还原成正确的 
+> SQL 或者其他下游支持的形式。本文主要通过对 TiDB Online DDL 机制原理和实现的分析，引出对当前 TiCDC 数据解析实现的讨论。 
+> 
 
 ## 背景和问题
 数据同步组件是数据库生态中不可或缺的生态工具，比较知名的开源单机数据库 MySQL 就将数据同步作为 Server 能力的一部分，并基于 MySQL binlog 实现异步/半同步/同步的主从复制。

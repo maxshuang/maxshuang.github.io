@@ -1,11 +1,11 @@
 ---
 layout: post
 title: What The Linux Kernel Is
-subtitle: pic from https://press.princeton.edu/books/hardcover/9780691179315/ant-architecture 
+subtitle: pic from https://www.pexels.com/photo/photo-of-a-turtle-swimming-underwater-847393/ 
 author: maxshuang
 categories: Linux-Kernel
 banner:
-  image: assets/images/post/linux-kernel/Tschinkel-Fig-2-1.jpeg 
+  image: /assets/images/post/what-the-linux-kernel-is/pexels-belle-co.jpg 
   opacity: 0.618
   background: "#000"
   height: "70vh"
