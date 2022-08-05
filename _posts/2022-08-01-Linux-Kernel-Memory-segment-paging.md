@@ -1,11 +1,11 @@
 ---
 layout: post
-title: (script)Linux Kernel Memory(Part 1)
-subtitle:
+title: (script)Linux Kernel Memory Management(PartI)
+subtitle: Segment and Paging System
 author: maxshuang
 categories: Linux-Kernel
 banner:
-  image: /assets/images/post/linux-kernel-memory-part1/pexels-pixabay-52717.jpg
+  image: /assets/images/post/linux-kernel-memory-segment-paging/pexels-pixabay-52717.jpg
   opacity: 0.618
   background: "#000"
   height: "70vh"
@@ -15,7 +15,7 @@ banner:
 tags: Linux-Kernel Memory
 ---
 
-从今天开始我们会将 Linux Kernel 内存管理相关的内容，因为这部分比较庞杂，有些设计上的考量没有完全搞清楚，所以会长期处于 script 状态。
+从今天开始我们会讲 Linux Kernel 内存管理相关的内容，因为这部分比较庞杂，有些设计上的考量没有完全搞清楚，所以会长期处于 script 状态。
 
 如果你之前看过一些 Linux Kernel 内存管理和 Linux Kernel 源码，你会看到类似下面这种汇编指令片段：
 ```
@@ -64,22 +64,18 @@ CPU -> 段寄存器 -> 全局描述符 -> 段基址偏移 Base + 逻辑地址(�
 在这种情况下，将物理内存区间固定得映射到线性地址空间中，就会有很大的资源浪费。怎么解决这个问题？内存复用。
 
 内存复用的意思是说，我希望同一块物理内存，当进程A 主动释放或者长时间不使用这块物理内存时，就将这块内存给进程B 使用，为了隐藏底层的内存复用，
-我在线性地址和物理地址之间搞个表维护这种映射关系，以便可以查找，比如线性地址 [0, 10) => 物理地址 [1000, 1010)。 
+我在线性地址和物理地址之间搞个表维护这种映射关系以便可以查找，比如线性地址 [0, 10) => 物理地址 [1000, 1010)。实际的 Linux 将内存块的大小设
+置成 4K 或者 2M 或者 4M。关于内存块大小的选择涉及到内存碎片/页表内存占用/资源利用率/Copy-on-write 机制效率/内存复用效率等等因素的影响，可以
+参考 stackover 上的一个 [intel 推荐答案](https://stackoverflow.com/questions/11543748/why-is-the-page-size-of-linux-x86-4-kb-how-is-that-calculated)
+。有了内存分页机制和页表映射，我们就实现了线形地址到物理地址的转换。现在我们就可以想象 CPU 拿到指令中的逻辑地址时，大概经过了哪些流程从而获
+取到确定物理地址上的数据。
 
+到这里就结束了吗？仔细想想会感觉漏了一点什么，线性地址空间的抽象让用户的进程感觉自己独占了整个 CPU 和内存，上面提到其实后面有分页管理的内存
+复用。如果再深入想想，用户在写代码时在一个抽象的线性地址空间里假装自己在利用一段线性的空间，那内核是在哪里起作用的？前面我们说过内核是什么，
+内核在静态概念上只是数据和指令按某种格式组织在一起的文件，进程在运行时内核在哪里？进程使用了内核管理的物理页，那内核自己的内存用的是什么？是
+实地址模式？直接获取对应物理地址的数据？内核自己的内存是怎么组织的？鸡生蛋，鸡表示内核，蛋表示物理页的话，鸡自己也在物理内存中，那谁生的鸡？
+如果不能从操作系统加载线性得搞清楚整个内存管理和分配的全貌，就还是会对内存分页管理这种偏异步的抽象感到迷惑，突然跳去做了一件事情。
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+如果想要了解更多相关内容，请直接阅读：  
+《Understanding The Linux Kernel》Daniel P.Bovet & Marco Cesati  
+《Modern Operating System》Andrew S.Tanenbaum & Herbert Bos
