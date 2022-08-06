@@ -1,7 +1,7 @@
 ---
 layout: post
-title: (script)Linux Kernel Memory Management(PartI)
-subtitle: Segment and Paging System
+title: Linux Kernel-Memory Segment and Paging System(WIP) 
+subtitle:
 author: maxshuang
 categories: Linux-Kernel
 banner:
@@ -79,3 +79,4 @@ CPU -> 段寄存器 -> 全局描述符 -> 段基址偏移 Base + 逻辑地址(�
 如果想要了解更多相关内容，请直接阅读：  
 《Understanding The Linux Kernel》Daniel P.Bovet & Marco Cesati  
 《Modern Operating System》Andrew S.Tanenbaum & Herbert Bos
+ 内核源码 https://www.kernel.org/

@@ -1,7 +1,7 @@
 ---
 layout: post
 title: What The Linux Kernel Is
-subtitle: pic from https://www.pexels.com/photo/photo-of-a-turtle-swimming-underwater-847393/ 
+subtitle: picture from https://www.pexels.com/photo/photo-of-a-turtle-swimming-underwater-847393/ 
 author: maxshuang
 categories: Linux-Kernel
 banner:

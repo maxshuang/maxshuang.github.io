@@ -1,11 +1,11 @@
 ---
 layout: post
-title: (script)Linux Kernel Memory Management(PartII)
-subtitle: Kernel Memory Layout
+title: Linux Kernel-Memory Layout(WIP)
+subtitle: 
 author: maxshuang
 categories: Linux-Kernel
 banner:
-  image: /assets/images/post/linux-kernel-memory-segment-paging/pexels-pixabay-52717.jpg
+  image: /assets/images/post/linux-kernel-memory-layout/pexels-hendrik-cornelissen-2862070.jpg
   opacity: 0.618
   background: "#000"
   height: "70vh"
@@ -56,6 +56,16 @@ start_kernel 函数初始化几乎所有内核部件，比如初始化调度需�
 回用户态。从用户的角度看，这个过程多么线性，多么符合思维习惯。
 
 但是进程线性地址空间到底是什么？可以想象出 CPU 上大概执行的代码逻辑吗？内核在 3G ～ 4G 进程地址空间是什么意思？陷入内核是什么意思？进程从用户态切换
-到内核态是什么意思？内核态和内核是什么关系？前面不是说内核被加载到内存后 CPU 开始执行内核相关的指令吗？那这里进程角度的相关
+到内核态是什么意思？内核态和内核是什么关系？前面不是说内核被加载到内存后 CPU 开始执行内核相关的指令吗？那这里进程角度的相关数据和指令是什么时候执行
+的？
+
+前面我们说过进程线性地址空间是一种内核给进程内存的一种抽象，进程感觉自己被分配并且拥有了 4G 的连续线性内存可以使用，但是实际上进程并没有被分配并拥有
+4G 的内存空间。那进程拥有的 4G 线性地址空间到底是什么？要回答这个问题，我们需要先回答`拥有`是什么意思。当我们拥有一块饼干时，我们能看到饼干的形状大小，
+可以摸到饼干的表面，确认我们拥有了这个饼干。但是我们拥有一段地址空间就没有这么具体了，试想一下，我们用 new 分配一个 n size 的内存时，实际上我们拿到的
+是这块 n size 的内存块的首地址，所以我们说我们拥有了一块 n size 大小内存，实际上是持有了一个 n size 大小内存的首地址，这个地址是被背后的内存分配器认证
+过的。所以我们拥有了 4G 的连续线性地址的真正意思是，我们持有了能完成 4G 大小内存寻址能力的页表
+实际上线性地址背后是物理内存分页管理的内存
+复用机制。当 CPU 遇到一个逻辑地址时，它转换成线性地址后开始查询进程自己的分页页表对应的页表项，如果页表项指示有效，则说明该线性地址所在的逻辑页已经
+被分配了对应的物理页，此时 CPU 可以直接完成寻址。如果页表项无效
 
 

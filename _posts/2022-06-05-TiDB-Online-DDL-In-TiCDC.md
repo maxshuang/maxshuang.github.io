@@ -1,7 +1,7 @@
 ---
 layout: post
 title: TiDB Online DDL In TiCDC
-subtitle: pic from https://www.sciencefriday.com/educational-resources/why-do-bees-build-hexagonal-honeycomb-cells/
+subtitle: picture from https://www.sciencefriday.com/educational-resources/why-do-bees-build-hexagonal-honeycomb-cells/
 author: maxshuang
 categories: dist-SQL TiDB Online-DDL
 banner:
@@ -14,8 +14,6 @@ banner:
   subheading_style: "color: gold"
 tags: Distributed-System TiDB TiCDC Online-DDL
 ---
-
-## 引言
 
 > [TiCDC](https://github.com/pingcap/tiflow) 作为 [TiDB](https://github.com/pingcap/tidb) 的数据同步组件，负责直接从 [TiKV](https://github.com/tikv/tikv) 
 > 感知数据变更同步到下游。其中比较核心的问题是数据解析正确性问题，具体而言就是如何使用正确的 schema 解析 TiKV 传递过来的 Key-Value 数据，从而还原成正确的 
