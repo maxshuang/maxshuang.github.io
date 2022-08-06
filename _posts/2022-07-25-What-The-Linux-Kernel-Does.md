@@ -61,10 +61,10 @@ Data Platform 团队多个产品的资源调度能力和 Failover 能力。从 D
 
 于是我们遇到了 Linux Kernel 关于 CPU 资源的抽象。还有就是关于 IO 的抽象，以后我们再补充。
 
+## Linux Kernel 做了什么
 为了了解 Linux Kernel 关于 CPU 和内存资源的抽象，我阅读了《Understanding The Linux Kernel》这本书，内核中各种精巧的数据结构/高效率缓存设计/寄存器
 使用总是让我写上一句`天才`的旁白。
 
-## Linux Kernel 做了什么
 后来我问了自己，在一堆复杂设计的背后，内核真正做的是什么？如果让我来实现内核的话，我会实现成什么样子？这个问题有点恐怖，我拿到的是什么？我拿到的是:
 * 一个能被时钟信号驱动不断去取指令顺序执行的 CPU
 * 物理空间从 0 到 N 线性寻址的内存硬件
@@ -88,3 +88,9 @@ Data Platform 团队多个产品的资源调度能力和 Failover 能力。从 D
 * 比如进程线性地址空间管理，如果将操作系统的内存分页管理暴露给用户，用户将要面对页级别的大量小块内存各种权限/Dirty 属性之类的管理，这对使用者来说就是
 灾难。所以进程地址空间其实是引入了更大的整体化视图，比如整个 4G 的连续的线性地址空间，不同特性的线性段，比如只读的代码段，可读可写的数据段，栈，堆，
 高 4G 的内核线性区间。通过大的分段设计，可以更加简单得完成资源的统一的管理，比如根据线性地址段的特权级和权限设置页表级别的特权级和权限。
+
+## 推荐阅读
+想要了解更多相关内容，请直接阅读：  
+1. 《Understanding The Linux Kernel》Daniel P.Bovet & Marco Cesati  
+2. 《Modern Operating System》Andrew S.Tanenbaum & Herbert Bos
+3.  内核源码 https://www.kernel.org/
