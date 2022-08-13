@@ -28,6 +28,9 @@ tags: Linux-Kernel
 首先 Linux Kernel 肯定是用户程序和硬件的中间层，因为我们在写代码的时候几乎从来没有直接操作过硬件资源，比如让显示器显示我们正在输入的内容，
 比如接受键盘输入，比如操作 CPU/内存，比如操作磁盘。
 
+<img src="/assets/images/post/what-the-linux-kernel-is/middle-layer-2022-08-13-1215.png" alt="middle-layer" style="height: 300px; width:400px;"/>
+[source](https://excalidraw.com/#json=TjaHm0XmnRW-AQOFomuMm,0MVMKNoZKEAq3bhpNjfNng)  
+
 ### Linux Kernel 静态形式是文件
 ***所以这个抽象概念上的中间层是什么意思呢***  
 其实在最初的表现形式上是个文件，更专业的说法叫做内核镜像，所以我们在安装 linux 操作系统之前会拿到一个后缀是 image 或者 iso 的文件。这个内核
@@ -53,8 +56,10 @@ tags: Linux-Kernel
 Linux Kernel 静态看是一个包含内核数据和指令的文件，动态看是一个内核数据根据指令不断变更的状态机，比如从 0 -> 3 -> 2 -> 1 -> 9。可以说不只是内核，
 我们写的程序也是在做一样的事情。我们定义一些变量，然后对变量执行一系列的操作，然后再根据变量的新状态再做一系列操作。最后其实我们得到的是变量的状态机，
 计算以能量的形式被消耗掉了。
+<img src="/assets/images/post/what-the-linux-kernel-is/image-2022-08-13-1231.png" alt="kernel-image" style="height: 200px; width:500px;"/>
+[source](https://excalidraw.com/#json=zEyNpBhmkQXdrrOfBG50r,BTxyEqmP9aQAJDk-crUp0w)
 
-所以 Linux Kernel 是什么？  
+***所以 Linux Kernel 是什么？***  
 虽然从本质上看，Linux Kernel 的确是一个内核数据的状态机，但是几乎所有的东西都可以理解成状态机。那 Linux Kernel 到底是什么？比如实际上我可以在 Linux 
 上提交很多任务，每个任务在内核中都需要新建一系列的数据维护其状态，内核一开始作为一个静态的文件，不太可能包含一些动态新建的数据。
 
@@ -100,6 +105,9 @@ next = 35
 *next = 3
 ```
 CPU 执行完以上 2 个指令后，第 16～19 个字节的值变成 35。这样我们就知道了 width 的位置，然后将 width 所在的第 35 ～36 字节位置的值更新成 3。
+
+![dynamic-block](/assets/images/post/what-the-linux-kernel-is/dynamic-memory-2022-08-13-1231.png)
+[source](https://excalidraw.com/#json=044ek0ZE4qenSMhe7saPy,anNYKODBmZZHnuwNxJy62w)
 
 实际上内核也是类似这样子，内核文件只保留最基本的数据结构，比如固定长度是 8 字节的链表头，通过在 4 字节的指针变量中保存内存其他内容的地址就
 可以找到内核维护的所有数据。

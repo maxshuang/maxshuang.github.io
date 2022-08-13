@@ -38,7 +38,7 @@ New data commitTs > New schema commitTs
 ## F1 Online Schema Change 
 F1 Online Schema Change 机制要解决的核心问题是，在单存储多缓存节点的架构下，如何实现满足数据一致性的 Online Schema 变更，如图1所示：
 
-![architecture](/assets/images/post/onlineddl/image13.png#pic_center=5x "architecture")
+<img src="/assets/images/post/onlineddl/image13.png" alt="architecture" style="height: 350px; width:430px;"/>
 图1: 单存储多缓存节点的架构下的 schema 变更
 
 这里原始论文定义数据不一致问题为**数据多余(orphan data anomaly)**和**数据缺失(integrity anomaly)**，Schema 变更结束后出现数据多余和数据缺失我们就认为数据不一致了。
@@ -73,7 +73,7 @@ F1 Online Schema Change 机制要解决的核心问题是，在单存储多缓�
 我们可以看到 old schema 是无法看到索引信息的，所以会导致出现删除数据，遗留没有指向的索引这种数据多余的异常场景，所以我们要引入的第一个中间状态是 delete-only 状态，
 赋予 schema 删除索引的能力。在delete-only 状态下，schema 只能在 delete 操作的时候对索引进行删除，在 insert/select 操作的时候无法操作索引，如图3 所示：
 
-![delete-only](/assets/images/post/onlineddl/image7.png "delete-only")
+<img src="/assets/images/post/onlineddl/image7.png" alt="delete-only" style="height: 300px; width:450px;"/>
 图3: 引入 delete-only 中间状态
 
 原始论文对于 delete-only 的定义如下：
@@ -95,7 +95,7 @@ F1 Online Schema Change 机制要解决的核心问题是，在单存储多缓�
 #### Write-only 状态
 在场景 2 中我们可以看到，对于 add index 这种场景，处于 new schema(delete-only)  状态节点插入的数据和存量数据都存在索引缺失的问题。而存量数据本身数量是确定且有限的，总可以在有限的时间内根据数据生成索引，但是 new insert 的数据却可能随时间不断增加。为了解决这个数据缺失的问题，我们还需要引入第二个中间状态 write-only 状态，赋予 schema  insert/delete 索引的能力。处于 write-only 状态的节点可以 insert/delete/update 索引，但是 select 无法看到索引，如图4所示：
 
-![write-only](/assets/images/post/onlineddl/image10.png "write-only")
+<img src="/assets/images/post/onlineddl/image10.png" alt="write-only" style="height: 300px; width:450px;"/>
 图4: 引入 write-only 状态
 
 原始论文中对于 write-only 状态的定义如下：
@@ -123,7 +123,7 @@ F1 Online Schema Change 机制要解决的核心问题是，在单存储多缓�
 2. 如果在 lease 时间内无法获取 new schema，则下线拒绝服务;
 通过对服务层节点加载行为的约定，我们可以得到一个确定的时间边界，在 `2*lease` 的时间周期之后，所有正常工作的服务层节点都能从 schema state1 过渡到 schema state2, 如图5 所示：
 
-![lease](/assets/images/post/onlineddl/image12.png "lease")
+<img src="/assets/images/post/onlineddl/image12.png" alt="lease" style="height: 350px; width:430px;"/>
 图5: 最多 `2*lease` 时长后所有的节点都能过渡到下一个状态
 
 ### 中间状态可见性
@@ -132,7 +132,7 @@ F1 Online Schema Change 机制要解决的核心问题是，在单存储多缓�
 总得来说，中间状态的 delete/insert 可见性是**内部可见性**，具体而言是**服务层节点对存储层节点的可见性**，而不是用户可见性。对于 add column 这个 DDL，服务层节点在 delete-only 和 write-only 状态下就能看到 new column，
 但是操作受到不同的限制。对用户而言，只有到 new schema 状态下才能看到 new column，才能显式操作 new column，如图 6 所示：
 
-![visuality](/assets/images/post/onlineddl/image5.png "visuality")
+<img src="/assets/images/post/onlineddl/image5.png" alt="visuality" style="height: 300px; width:450px;"/>
 图6: 中间状态可见性
 
 为了清晰表述可见性，我们举个例子，如图 7 所示。原始的表列信息为 `<c1>`, DDL 操作之后表列信息为 `<c1,c2>`。
