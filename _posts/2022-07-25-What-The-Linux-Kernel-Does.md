@@ -1,7 +1,7 @@
 ---
 layout: post
 title: What The Linux Kernel Does(WIP)
-subtitle: 
+subtitle: picture from https://www.pexels.com/search/wild%20animals/ 
 author: maxshuang
 categories: Linux-Kernel
 banner:

@@ -1,11 +1,11 @@
 ---
 layout: post
 title: TiDB Online DDL In TiCDC
-subtitle: picture from https://www.sciencefriday.com/educational-resources/why-do-bees-build-hexagonal-honeycomb-cells/
+subtitle: picture from https://www.pexels.com/search/wild%20animals/ 
 author: maxshuang
 categories: dist-SQL TiDB Online-DDL
 banner:
-  image: /assets/images/banners/Beehive-micro_large-min.jpeg 
+  image: /assets/images/post/onlineddl/pexels-matthew-montrone-733478.jpg 
   opacity: 0.618
   background: "#000"
   height: "70vh"
@@ -207,5 +207,5 @@ TiCDC 作为 TiDB 的数据同步组件，数据解析正确性问题是保证�
 Online Schema Change 原理出发，详细描述在 schema 变更各个阶段的数据行为，然后简单描述了当前 TiDB Online DDL 的实现。最后引出在当前 TiCDC 实现下在 data 和 schema 处理关系上的讨论。
 
 
-## Reference
+## 阅读推荐
 [Online, Asynchronous Schema Change in F1](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf)
