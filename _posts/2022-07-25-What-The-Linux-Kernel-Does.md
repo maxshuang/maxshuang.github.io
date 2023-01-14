@@ -1,6 +1,6 @@
 ---
 layout: post
-title: What The Linux Kernel Does(WIP)
+title: What The Linux Kernel Does
 subtitle: picture from https://www.pexels.com/search/wild%20animals/ 
 author: maxshuang
 categories: Linux-Kernel
@@ -45,7 +45,7 @@ Data Platform 团队多个产品的资源调度能力和 Failover 能力。从 D
 * 在这么多设计中，我如何知道我的设计在原理上是更好的，我做到了可能最好了吗？
 
 说的有点远了，像链接装载器和可执行文件格式，背后更多的是关于格式的约定和模块的复用(链接器背后已经涉及到线性地址空间的文件映射了)。我们在这
-一系列博客主要讨论 Linix Kernel 中的资源抽象。
+一系列博客主要讨论 Linux Kernel 中的资源抽象。
 
 ## Linux Kernel 中的 内存/CPU 抽象
 写过高级语言的同学一开始除了接触语言提供的语法之外，另外一个需要重点理解的是进程关于堆和栈的概念---函数调用用栈，小空间用栈，大空间用堆。再深入
