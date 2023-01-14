@@ -1,6 +1,6 @@
 ---
 layout: post
-title: What The Linux Kernel Is(WIP)
+title: What The Linux Kernel Is
 subtitle: picture from https://www.pexels.com/photo/photo-of-a-turtle-swimming-underwater-847393/ 
 author: maxshuang
 categories: Linux-Kernel
@@ -16,7 +16,7 @@ tags: Linux-Kernel
 ---
 
 > Linux Kernel 是个超级复杂的状态机，而内核镜像本身只是包含内核数据和内核指令的文件，这种文件按照内核文件规范组织内核数据和指令
-> 指令。
+> 。
 > 1. 其中内核数据本身包含了维护内核状态的基础数据，动态申请的数据则通过内核数据中的地址引用来实现寻址访问。
 > 2. 内核指令则描述了不同场景下内核数据的变更流程
 
@@ -111,9 +111,6 @@ CPU 执行完以上 2 个指令后，第 16～19 个字节的值变成 35。这�
 
 实际上内核也是类似这样子，内核文件只保留最基本的数据结构，比如固定长度是 8 字节的链表头，通过在 4 字节的指针变量中保存内存其他内容的地址就
 可以找到内核维护的所有数据。
-
-## 内核镜像布局
-[TODO]
 
 ## 推荐阅读
 想要了解更多相关内容，请直接阅读：  
