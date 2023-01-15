@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Memory Segment and Paging System(WIP) 
+title: Linux Kernel-Memory Segment and Paging System 
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
