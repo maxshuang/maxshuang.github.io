@@ -18,8 +18,8 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: "博客" 
-email: huangguohao@pingcap.com
+title: "Blog" 
+email: maxshuang.ob@gmail.com 
 description: >- # this means to ignore newlines until "baseurl:"
   Record daily work
 baseurl: "" # the subpath of your site, e.g. /blog
@@ -45,6 +45,12 @@ copyright: <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><
 remote_theme: "jeffreytse/jekyll-theme-yat"
 plugins:
   - jekyll-feed
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      lang: "en"
 
 # Exclude from processing.
 # The following items will not be processed, by default.
