@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Slab System And Hardware Cache(WIP)
+title: Linux Kernel-Slab System And Hardware Cache
 subtitle: picture from https://www.pexels.com/search/wild%20animals/ 
 author: maxshuang
 categories: Linux-Kernel
