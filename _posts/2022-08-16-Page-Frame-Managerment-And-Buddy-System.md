@@ -35,7 +35,7 @@ tags: Linux-Kernel Memory
 
 更多的，我们可能存在多个物理内存节点，不同的 CPU 访问不同的物理内存节点延迟是不同的，CPU 访问
 特定内存节点速度会更快，我们称这种架构为 Non Uniform Memory Access(NUMA)。  
-![NUMA](/assets/images/post/linux-kernel-page-frame-buddy-system/numa.jpeg)
+![NUMA](/assets/images/post/linux-kernel-page-frame-buddy-system/numa2.png)
 
 
 对于每个物理内存节点，虽然理论上对于任何物理页框请求需求，我们可以分配任意物理页框，但是实际上内核对于不同物理地址范围的使用做了一些约定，
