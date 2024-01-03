@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Page Frame Managerment And Buddy System(WIP)
+title: Linux Kernel-Page Frame Managerment And Buddy System
 subtitle: picture from https://www.pexels.com/search/wild%20animals/ 
 author: maxshuang
 categories: Linux-Kernel
