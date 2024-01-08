@@ -191,8 +191,8 @@ macro SAVE_ALL:
 保护关键资源。而 tasklet 则可以是不可重入的，因为内核会调度相同的 tasklet 串行执行。
 
 Linux 2.6 定义了 6 种类型的软中断，低下标表示高优先级。同种类型软中断任务通过链表的形式维护在软中断数组的对应位置，当软中断在一些场景下激活执行时，会持续处理有限个数的挂起软中断，其他的会唤醒内核线程 ksoftirqd 继续处理。  
-![softirq-types1](/assets/images/post/linux-kernel-user-kernel-space/softirq-type1.png)  
-![softirq-types2](/assets/images/post/linux-kernel-user-kernel-space/softirq-type2.png)
+![softirq-types1](/assets/images/post/linux-kernel-user-kernel-space/softirq-types1.png)  
+![softirq-types2](/assets/images/post/linux-kernel-user-kernel-space/softirq-types2.png)
 
 内核线程是所属于内核的具备进程上下文的特殊进程，它的
 特点是不会访问进程用户线性地址空间[0, 3G), 所以内核进程在执行的时候会借用上一个用户进程的进程页表，这个到进程切换时我们再详细描述。该内核线程大致的工作如下：
