@@ -5,13 +5,13 @@ subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
 banner:
-image: /assets/images/post/linux-kernel-manage-process/pexels-pixabay.jpg
-opacity: 0.618
-background: "#000"
-height: "70vh"
-min_height: "38vh"
-heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
-subheading_style: "color: gold"
+  image: /assets/images/post/linux-kernel-manage-process/pexels-pixabay.jpg
+  opacity: 0.618
+  background: "#000"
+  height: "70vh"
+  min_height: "38vh"
+  heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
+  subheading_style: "color: gold"
 tags: Linux-Kernel CPU
 ---
 
@@ -29,7 +29,7 @@ CPU 核数和物理内存大小，初始化对应的管理结构，并定义基�
 3. 最后，定义了基础能力之后，内核需要管理需要执行的逻辑流，其中比较重要的是定义一个内核自己的空闲执行流和一些内核管理工作相关的执行流，这样 CPU 就可以在不同的执行流之间轮流切换，
 保证不同的执行流逻辑都在稳步推进。
 
-这样整个操作系统就开始运行起来了。
+这样整个操作系统就开始运行起来了，而执行流就保存在不同的进程中。
 
 ## 进程
 进程是操作系统中独立实体抽象的概念，它包括一系列关系密切的所属资源(状态)和代码逻辑。所属资源包括申请的内存资源、文件资源和网络资源等，代码逻辑就是我们从 main 开始的业务逻辑。
@@ -39,7 +39,9 @@ CPU 核数和物理内存大小，初始化对应的管理结构，并定义基�
 
 那从业务角度出发的相关概念和进程概念的契合点在哪里呢？
 
-在于看不到的工具---编译器，链接器和装载器。我们在编辑器中根据不同语言编译器的约定，使用固定的开始函数，比如 main，和符合编译器的语法实现我们的逻辑，编译器将我们编写的高级语言根据语言特性展开成了
+在于看不到的工具---编译器，链接器和装载器。
+
+我们在编辑器中根据不同语言编译器的约定，使用固定的开始函数，比如 main，和符合编译器的语法实现我们的逻辑，编译器将我们编写的高级语言根据语言特性展开成了
 CPU 可执行的机器代码。同时，更重要的是，将我们编写的逻辑按照可执行文件规范组织成了结构型的可执行文件。这些可执行文件的格式被内核识别，比如根据可执行文件头部的元信息可索引到从第 N 个字节开始的字节码就是
 执行逻辑的开始。通过这种方式，当我们在 shell 中执行这个可执行文件时，内核可以动态分配出一个进程结构体 task struct，并关联可执行文件到这个结构体中，按需读取可执行文件的内容，比如读取硬盘中代码逻辑到内存的
 task struct 中，以便 CPU 执行。
@@ -182,11 +184,12 @@ struct rlimit {
 
 ## 进程管理
 进程创建后，就需要维护进程的不同关系，比如如何维护所有进程，如何维护可运行进程，当给线程组的领头进程发终止信号时如何通知线程组的其他线程等等场景。
-### 进程链表、运行队列和等待队列
+### 进程链表
 所有进程描述符都通过 task_struct 中的 list_head 类型字段形成了双向链表，从而关联操作系统中所有的进程。  
 进程链表的头是上面提到的进程 0 的进程描述符。  
 ![process-list](/assets/images/post/linux-kernel-manage-process/process-list.png)
 
+### 运行队列
 为了快速获取可运行的进程，内核还涉及了可运行队列，将所有处于 TASK_RUNNING 状态的进程描述符都链接进可运行队列。每个 CPU 都有自己的 runqueue，并且一个进程描述符只属于一个 runqueue。  
 runqueue 中核心的字段是 prio_array_t 结构体，里面维护了 140 个优先级的运行队列，以便 CPU 能在常数时间内获取到最佳的可运行进程。
 ```
@@ -200,6 +203,7 @@ struct prio_array_t {
 
 内核没有为 TASK_STOPPED、EXIT_ZOMBIE 和 EXIT_DEAD 状态维护专门的队列，因为他们要么数量少，要么可以通过父子关系等索引到。
 
+### 等待队列
 等待队列是除了运行队列之外的核心队列，在中断处理、进程同步(部分是锁机制，在锁相关文章中介绍)和定时场景下使用。当进程等待某些资源时，比如等到定时间隔到期，等待文件网络可写等，内核就把进程描述符挂入对应的等待队列中，让出 CPU 使用权，
 等待特定事件发生时再把进程描述符从等待队列中移动到运行队列中。  
 等待队列实现上也是个双向链表，
