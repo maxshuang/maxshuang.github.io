@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Manage Process(WIP)
+title: Linux Kernel-Manage Process
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
