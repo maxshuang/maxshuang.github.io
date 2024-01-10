@@ -133,7 +133,46 @@ use of syscall(2).
 最后讲下线程的创建，有一些符合 POSIX 标志的系统库可以创建线程，比如 pthread_create。在内部实现上，调用 clone 指定 CLONE_VM 即可创建轻量级进程，通过共享父进程内存资源的形式实现了线程的概念。
 
 #### TLS(Thread Local Segment)
+线程是独立的执行流，为了满足执行流要求，需要拥有自己的用户态栈、进程内核栈和 TCB(Thread Control Block)，存放函数调用参数、临时数据和线程执行时硬件上下文。linux 使用轻量级进程实现线程，
+其中共享了主进程的内存资源。
 
+为了避免数据竞争，一类经典的场景是线程也拥有自己的数据，不同线程更新自己的数据备份，如下：
+```
+#include <stdio.h>
+#include <threads.h>  // For C11 thread support
+
+// Define a thread-local variable
+_Thread_local int tls_var;
+
+void threadFunc() {
+    tls_var = 11;
+    printf("Thread-local variable value: %d\n", tls_var);
+}
+
+int main() {
+    // Set the value of the thread-local variable
+    tls_var = 10;
+
+    // create a new thread
+    pthread_create(threadfunc, ...);
+
+    // sleep and wait the other thread runs, access and print the value of the thread-local variable
+    sleep(3);
+    printf("Thread-local variable value: %d\n", tls_var);
+    
+    ... 
+    
+    return 0;
+}
+```
+在这个 demo 中，我们使用 _Thread_local 定义了一个线程本地变量，然后我们在主线程和子线程中分别更新 tls_var 的值。
+可以发现主线程打印出来的 tls_var 值还是 10，线程本地变量 tls_var 在不同线程对应不一样的副本。
+
+另一个有名的线程本地例子是 errno 的改造，原来在定义的是全部变量，到了多线程环境下返回的是 thread local errno。
+
+线程本地变量的机制和 TLS 有关，不同架构下的实现也不同，其原理涉及编译器、链接器、动态链接器、内核和语言运行时。有兴趣的同学深入的同学可以参考以下博客，  
+[A Deep dive into (implicit) Thread Local Storage](https://chao-tic.github.io/blog/2018/12/25/tls)  
+[all-about-thread-local-storage](https://maskray.me/blog/2021-02-14-all-about-thread-local-storage)
 
 ### 进程标识和进程状态
 识别不同的进程就如果区分不同的人，进程描述符 task struct 通过一个 4 字节的 pid 值区分不同进程。可以看到，这种分配方式下，内核中可维护的进程个数上限是 2^32(65535)。内核递增得为新进程分配 pid 号，
@@ -271,7 +310,7 @@ void wake_up(wait_queue_head_t *q)
 
 用户态下，一个经典需求是使用 kill($pid) 函数给指定进程发送信号，使用进程 pid 号标识进程。如果通过遍历进程链表的方式获取 pid 号对应的进程描述符 task struct 或者获取进程组 leader 是 pid 的所有进程，效率上就太低了。
 
-内核使用 hash table 保存 pid 和进程描述符的关系。同样的，相同进程组的进程或者相同线程组的轻量级进程会映射到 hash table 的相同位置，并通过搜索冲突链表的方式找到 leader pid 相同的节点，形成双向链表。具体如下图所示：
+内核使用 hash table 保存 pid 和进程描述符的关系。同样的，相同进程组的进程或者相同线程组的轻量级进程会映射到 hash table 的相同位置，并通过搜索冲突链表的方式找到 leader pid 相同的节点，形成双向链表。具体如下图所示：  
 ![process-pid-hash](/assets/images/post/linux-kernel-manage-process/process-pid-hash2.png)  
 [source](https://excalidraw.com/#json=C3kc-JYQEl8zNDG-mrlYT,zh_M9dPVCZeUi9NENACikw)
 
