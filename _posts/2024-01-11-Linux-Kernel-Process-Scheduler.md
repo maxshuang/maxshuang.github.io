@@ -162,8 +162,8 @@ _ _switch_to(struct task_struct *prev_p, struct task_struct *next_p) _ _attribut
 
 这一系列博客的意图都是希望从线性的角度让读者了解内核和内核中的一系列抽象概念，但是 switch_to 流程是少见的非线性逻辑，在一个函数中出现了另外一个进程 C 的上下文。所以我们通过图示的方式进一步解释整个流程，
 让读者能感受下这里的实现魅力。  
-![process-switch](/assets/images/post/linux-kernel-process-scheduler/process-switch.png)  
-[source](https://excalidraw.com/#json=0DPa7UABTJZ8k7r0HFExI,QfLMCCVr_bH_nudMSWWsAQ)
+![process-switch](/assets/images/post/linux-kernel-process-scheduler/process-switch2.png)  
+[source](https://excalidraw.com/#json=86XOxxDKiZR1FuyFjTXxE,uu-CG6xXWqZKvwlDBWC0rA)
 
 这个图这么复杂看起来不是一个很好的表达方式，以后想到更好的方式再替换。
 
