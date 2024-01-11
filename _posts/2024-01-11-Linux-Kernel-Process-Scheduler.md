@@ -5,7 +5,7 @@ subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
 banner:
-  image: /assets/images/post/linux-kernel-process-scheduler/pexels-adriaan-greyling.jpg
+  image: /assets/images/post/linux-kernel-process-scheduler/pexels-rajitha-fernando-1557917.jpg
   opacity: 0.618
   background: "#000"
   height: "70vh"
@@ -165,7 +165,8 @@ _ _switch_to(struct task_struct *prev_p, struct task_struct *next_p) _ _attribut
 ![process-switch](/assets/images/post/linux-kernel-process-scheduler/process-switch.png)  
 [source](https://excalidraw.com/#json=0DPa7UABTJZ8k7r0HFExI,QfLMCCVr_bH_nudMSWWsAQ)
 
-这个图这么复杂看起来不是一个很好的表达方式，以后想到更好的方式再替换。  
+这个图这么复杂看起来不是一个很好的表达方式，以后想到更好的方式再替换。
+
 理解进程切换的关键还是在于从进程 A 的步骤 7 到步骤 8 不是线性的，中间隔着很多次进程切换。然后再从进程 C 的步骤 1’到步骤 7‘，之后才是步骤 8，此时才真正回到进程 A 的上下文。
 
 ### 进程抢占(preemption)
