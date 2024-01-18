@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Schedule-Processes(WIP)
+title: Linux Kernel-Schedule-Processes
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
@@ -136,9 +136,6 @@ static priority 作为 dynamic priority 的 baseline, bonus 则是根据进程�
 1. 时钟中断后，检查到 current 进程耗尽了时间片，设置当前进程标志表示应该切换进程。
 2. 异步硬件事件到达，中断处理例程唤醒特定等待队列中的进程，发现唤醒进程优先级高于 current 进程，设置当前进程标志。
 
-#### 前置操作
-
-
 #### switch_to 宏
 进程切换中比较核心的硬件上下文切换操作都在 switch_to 宏中，这也是个相当有意思和细节满满的操作。
 ```
@@ -237,6 +234,23 @@ _ _switch_to(struct task_struct *prev_p, struct task_struct *next_p) _ _attribut
 
 ### 进程抢占(preemption)
 
+在内核态下，如果对应的处理例程允许进程抢占，无论是主动调用 schedule 进行进程切换，还是延迟调用 TIF_NEED_RESCHED，内核会选择高优先级的进程替代当前进程 current。
 
-### 
+### 总结
+通过对进程切换和进程优先级模型的描述，我们大致了解了内核中 CPU 是如何在不同的执行流间切换的，大致总结成以下几个特点：  
+1. 内核依赖硬件时钟中断实现分时复用机制，所有的进程切换都发生在内核态。    
+2. 进程切换依赖内核对进程硬件上下文的保存和恢复机制。  
+3. 内核使用优先级调度模型，每个进程拥有静态优先级和动态优先级，同时被分类成不同类型进程，比如实时进程，交互进程和批处理进程。  
+4. 进程的静态优先级决定时间片长短，动态优先级由进程静态优先级和进程平均休眠时间按经验公式计算出来，并被动态调整到不同的优先级队列中。
+
+我们再从整体描述下这个过程，承接 [Manage Processes](https://maxshuang.github.io/linux-kernel/2024/01/08/Linux-Kernel-Manage-The-Process.html), 以便读者以线性的思维感受下操作系统的运行。  
+1. 硬件加电后内核被 bios 加载到物理内存。
+2. CPU 开始执行内核初始化例程，其中初始化了进程链表和运行队列等核心数据结构，并创建了进程 0 和其他内核线程。
+3. 内核完全初始化之后，就可以通过系统调用的方式向内核注册用户进程，比如 shell、terminal 和图像界面等程序。
+4. 通过硬件中断，比如周期性时钟中断和网卡中断等，再加上内核对进程优先级的调整，CPU 不断在中断处理例程、内核线程、进程逻辑等之间跳转。
+
+
+
+
+
 
