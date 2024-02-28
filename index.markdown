@@ -4,7 +4,7 @@
 
 layout: home
 title:  "首页"
-heading: "行百里者半九十"
+heading: "Nothing is built on stone; all is built on sand, but we must build as if the sand were stone.\n—Jorge Luis Borges"
 author: maxshuang
 banner:
   image: /assets/images/banners/home.jpeg  
