@@ -27,6 +27,8 @@ Transaction 是数据并发读写操作的一种抽象。这种读写操作的�
 
 等等这些问题都可以称为数据异常 data anomaly。
 
+事务一般和 RDMS(Related Database Manager System) 一起出现，但是作为一种操作抽象，只要涉及到并发的 multi-objects 操作，事务都能提供一个简洁且强大的操作抽象。
+
 # 基本特性
 事务作为一种操作抽象，提供了 ACID 特性：
 1. Atomicity

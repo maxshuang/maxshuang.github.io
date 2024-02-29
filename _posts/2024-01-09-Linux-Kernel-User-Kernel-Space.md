@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-From User Space To Kernel Space(WIP)
+title: Linux Kernel-From User Space To Kernel Space
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
