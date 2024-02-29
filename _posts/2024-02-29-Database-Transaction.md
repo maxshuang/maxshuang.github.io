@@ -25,33 +25,39 @@ Transaction 是数据并发读写操作的一种抽象。这种读写操作的�
 3. 并发读写导致读到了部分旧值，部分新值。
 4. 写操作给用户返回成功了，系统 crash 或者 power cutoff 导致数据丢失。
 
-等等这些问题都可以称为数据异常 data anomaly。
+等等这些问题都可以称为**数据异常 data anomaly**。
 
 事务一般和 RDMS(Related Database Manager System) 一起出现，但是作为一种操作抽象，只要涉及到并发的 multi-objects 操作，事务都能提供一个简洁且强大的操作抽象。
 
 # 基本特性
+
 事务作为一种操作抽象，提供了 ACID 特性：
-1. Atomicity
+1. Atomicity  
 单个事务中的多个操作，要么全部成功，要么全部失败，用户无法看到中间状态。
-2. Consistency
-数据一致性，表示对数据的语义约束保持一致。这个更多是应用级别的约束，因为数据的语义是应用赋予的。举个例子：   
+
+2. Consistency  
+数据一致性，表示对数据的语义约束保持一致。这个更多是应用级别的约束，因为数据的语义是应用赋予的。举个例子：  
+``` 
 用户 A（\$100）给用户 B（\$50）转账 \$10，无论如何操作，从应用语义上看要求用户 A 和用户 B 的总额是 \$150。  
 由于操作上的失误，用户A 转出 \$10 后系统 failover 了，恢复后变成了 A（\$90）, B (\$50)，此时我们说系统处于不一致状态。
+```
 
 同时，数据的一致性也和提供数据的系统有关，比如数据库在处理并发读写时读到了不一致的数据状态，即使数据本身是一致的，用户也可能基于读取到的不一致状态做出某些操作，导致底层数据不一致。
 
 一些数据库本身提供了某些机制约束数据语义，比如 foreign key。
 > NOTE:  
-> 这里的 consistency 和 data replication consistency 是两个概念。
-> 这里的 consistency 强调的是 data semantic requirement，比如两个数的总和保持固定值。 
+> 这里的 consistency 和 data replication consistency 是两个概念。  
+> 这里的 consistency 强调的是 data semantic requirement，比如两个数的总和保持固定值。   
 > 而 data replication consistency 强调的是 recency requirement, 也就是多备份下 newest write 被什么时候看到。
 
-3. Isolation
+3. Isolation  
 并发读写场景下数据的可见性问题。如果把事务在形式上看成多个操作的集合 tx=[op1, op2, ...], 那 isolation 描述的就是事务和事务之间数据可见性的问题，也是需要理解的难点。
-4. Durability
-持久性，事务提交后，即使系统崩溃也不会丢失数据。一般我们指写入本地 non-volatile 介质，比如 HDD/SSD。在一些分布式系统中可能有更高的持久性要求，比如强一致备份。
+
+4. Durability  
+持久性，事务提交后，即使系统崩溃也不会丢失数据，一般我们指写入本地 non-volatile 介质，比如 HDD/SSD。在一些分布式系统中可能有更高的持久性要求，比如强一致备份。
 
 # Isolation
+
 业务开发中，利用 SQL 读写数据库已经是个普遍的操作。许多初学者第一次学习数据库就是从如何使用 SQL 进行 CURD 开始的，甚至如果不是做后端开发相关工作，未来很长一段时间都可能在不了解 Isolation Level 的语义下使用 SQL。
 
 数据库提供 transaction 能力，单条 SQL 其实已经被 implicitly declare 成了事务，如果需要在事务中执行多条操作，就需要显式声明事务的开始、提交和回滚，比如 MySQL 中的：
@@ -61,11 +67,11 @@ commit; (or rollback;)
 ```
 事务拥有上面提及的 4 个特点，比如 atomicity 的要么全部成功，要么全部失败，但也导致了出现很多*迷思*。
 
-> NOTE
-> serializability 是系统提供的保证数据一致性的一种操作性质，表示并发操作的结果和单线程串行操作一致。
+> NOTE：  
+> serializability 是并发事务调度的一种性质，表示并发操作的结果和单线程串行操作一致。  
 > serializable 是提供 serializability 的一个隔离级别, 也有其他一些隔离级别可以实现 serializability。
 
-一种普遍的迷思是怀着*朴素的可串行化 serializability* 的观点使用 SQL，说得更简单点就是认为数据库是以*单线程串行化*的方式在执行 SQL。举个例子：
+一种普遍的迷思是怀着**朴素的可串行化 serializability** 的观点使用 SQL，说得更简单点就是认为数据库是以**单线程串行化**的方式在执行 SQL。举个例子：
 ```
 initial: A=10
 
@@ -101,7 +107,7 @@ commit;
 | t5   | commit;   | commit; |
 
 这里认知偏差的原因在于： 
-*数据库为了提高事务并发读写性能，会默认不使用甚至不提供 serializability 这种最符合线性思维的事务并发读写保证。*
+**数据库为了提高事务并发读写性能，会默认不使用甚至不提供 serializability 这种最符合线性思维的事务并发读写保证。**
 
 不理解 Isolation Level 就可能会在未来的某个时间节点触发数据异常，让我们跟随数据异常的脚步看下数据库已经为我们提供了什么样的约束。
 
@@ -206,10 +212,9 @@ MySQL 提供 Repeatable Read(RR) 的 isolation level 解决这种数据异常，
 再通俗理解就是： 读的是历史数据，所以不会被写阻塞。
 2. 对于并发写写，采用 2PL(2 Phase Lock)的形式串行化数据访问，只有事务提交才会释放自己持有的所有锁。
 
-> NOTE
-> MySQL 的 RR 和 ANSI SQL 基于锁定义的 RR 是不同的概念，它在实现上更加靠近 SI 的 MVCC 机制，所而 ANSI SQL 中 RR 是通过在 read 时持有 shared lock 直到事务结束实现 RR。
->
-> 另外一个不同的地方在与，ANSI SQL RR 的实现方式决定了无法解决 Phantom Read 的问题，而 MySQL RR 可以解决，因为 new insert data 的 commit id 更大，所以是不会被看到的。
+> NOTE:  
+> MySQL 的 RR 和 ANSI SQL 基于锁定义的 RR 是不同的概念，它在实现上更加靠近 SI 的 MVCC 机制，所而 ANSI SQL 中 RR 是通过在 read 时持有 shared lock 直到事务结束实现 RR。  
+> 另外一个不同的地方在与，ANSI SQL RR 的实现方式决定了无法解决 Phantom Read 的问题，而 MySQL RR 可以解决，因为 new insert data 的 commit id 更大，所以是不会被看到的。  
 
 对于上面的例子，由于 Transaction1 开始读时 Transaction2 的事务还没有结束，所以 Transaction1 看不到 Transaction2 做的所有变更，从而保证了读到的数据满足一致性要求。
 ```
@@ -236,10 +241,10 @@ Repeatable Read（RR)/Snapshot Isolation(SI) 可以极大得提高数据库的�
 这里出现问题的关键就在于：
 *RR 和 SI 读取到的都是历史一致状态，也就是说用户如果基于一个旧的状态做一些更新，同时这个更新是和旧状态相关的，那最后可能导致数据语义上的约束被破坏。*
 
-表述得有点抽象，我们举个具体的例子说明一下，分析的过程中要记住*基于历史状态做判断* 这个出问题的点。
+表述得有点抽象，我们举个具体的例子说明一下，分析的过程中要记住**基于历史状态做判断** 这个出问题的点。
 
 ### Update Lost
-RR 和 SI 距离 serializability 最远的距离我认为是 *Update Lost*，这是一种非常符合直觉但是却总是得到错误结果的操作，也就是 read-modify-update。举个例子：
+RR 和 SI 距离 serializability 最远的距离我认为是 **Update Lost**，这是一种非常符合直觉但是却总是得到错误结果的操作，也就是 read-modify-update。举个例子：
 ```
 initial: A=10
 isolation level: rr or si
@@ -279,14 +284,14 @@ isolation level: rr or si
 | t6   | |commit; (A1=0;A2=0) |
 
 在这个例子中，我们可以看到，Transaction1 和 Transaction2 都希望在 A1+A2\==2 的前提下，将其中一个值设置成0, 从而保证最后 A1+A2\==1，但是实际的运行结果是 A1+A2\==0。
-> NOTE
+> NOTE:  
 > 如果想象成医院值班医生就会比较有意义。每天需要一名值班医生，结果原本值班的两个医生查看状态后都认为对方会值班，都请假了，关键是请假都通过了，导致最后没有医生值班。
 
 也就是说在 RR 和 SI 隔离级别下，基于历史状态下做一些数据变更，如果最后影响了对应的历史状态的话，就会出现这种 write skew 的*违反数据语义约束*的数据异常。
 
 这种 write skew 的现象不只是出现在 2 个事务中，也可能出现在多个事务的*级联操作*中，导致难以排查的数据异常。
 
-解决这个问题的关键还是*基于历史状态做判断*，只要每次读取的时候都读取*最新的状态*，并禁止其他读写，就可以部分解决这个问题(见 Phantoms 小节)，但是这样会降低数据库读写并发的性能。
+解决这个问题的关键还是**基于历史状态做判断**，只要每次读取的时候都读取**最新的状态**，并禁止其他读写，就可以部分解决这个问题(见 Phantoms 小节)，但是这样会降低数据库读写并发的性能。
 
 另一种解决方案是： 业务级别的周期性 recheck，因为数据库不提供这种自动化 recheck 语义约束的 feature。(foreign key 可以认为是一种业务级别的语义约束)。
 
@@ -335,7 +340,7 @@ isolation level: rr or si
 | t4   | if(sum(A)==2) do something;  |  |
 | t5   | commit; |  |
 
-在这个例子中，我们可以看到，虽然 Transaction1 为了读取到最新的数据并且防止其他事务读写该数据，加了排他锁，但是还是没有能够防止 Transaction2 insert 新的数据，导致 if(sum(A)==2) 也变成了*历史状态*，就可能*违反数据语义约束*。
+在这个例子中，我们可以看到，虽然 Transaction1 为了读取到最新的数据并且防止其他事务读写该数据，加了排他锁，但是还是没有能够防止 Transaction2 insert 新的数据，导致 if(sum(A)==2) 也变成了*历史状态*，就可能**违反数据语义约束**。
 
 对于这类数据异常，一种方法是除了 record lock 之后，还要加上 *gap lock*，比如 MySQL 的 next-key lock(record lock+gap lock)。
 
