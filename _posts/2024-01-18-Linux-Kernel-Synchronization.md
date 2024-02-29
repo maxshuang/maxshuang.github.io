@@ -8,7 +8,7 @@ banner:
   image: /assets/images/post/linux-kernel-synchronization/pexels-david-selbert-15578852.jpg
   opacity: 0.618
   background: "#000"
-  height: "70vh"
+  height: "55vh"
   min_height: "38vh"
   heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
   subheading_style: "color: gold"
