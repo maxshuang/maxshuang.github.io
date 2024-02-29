@@ -213,7 +213,7 @@ MySQL 提供 Repeatable Read(RR) 的 isolation level 解决这种数据异常，
 2. 对于并发写写，采用 2PL(2 Phase Lock)的形式串行化数据访问，只有事务提交才会释放自己持有的所有锁。
 
 > NOTE:  
-> MySQL 的 RR 和 ANSI SQL 基于锁定义的 RR 是不同的概念，它在实现上更加靠近 SI 的 MVCC 机制，所而 ANSI SQL 中 RR 是通过在 read 时持有 shared lock 直到事务结束实现 RR。  
+> MySQL 的 RR 和 ANSI SQL 基于锁定义的 RR 是不同的概念，MySQL RR 在实现上更加靠近 SI(MVCC 机制)，而 ANSI SQL RR 是通过在 read 时持有 shared lock 直到事务结束实现 RR(禁止其他 write)。  
 > 另外一个不同的地方在与，ANSI SQL RR 的实现方式决定了无法解决 Phantom Read 的问题，而 MySQL RR 可以解决，因为 new insert data 的 commit id 更大，所以是不会被看到的。  
 
 对于上面的例子，由于 Transaction1 开始读时 Transaction2 的事务还没有结束，所以 Transaction1 看不到 Transaction2 做的所有变更，从而保证了读到的数据满足一致性要求。
@@ -362,4 +362,4 @@ isolation level: rr or si
 2. Commitment Order
 3. Serialization Graph checking
 
-读者有兴趣可以执行查找相关的专业数据库资料。 
+读者有兴趣可以自行查找相关的数据库资料。 
