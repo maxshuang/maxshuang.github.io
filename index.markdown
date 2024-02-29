@@ -9,6 +9,6 @@ author: maxshuang
 banner:
   image: /assets/images/banners/home.jpeg  
   background: "#000"
-  height: "70vh"
+  height: "55vh"
   min_height: "38vh"
 ---
