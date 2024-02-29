@@ -5,7 +5,7 @@ subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Database
 banner:
-  image: 
+  image: /assets/images/post/database-transaction/hippo.jpg
   opacity: 0.618
   background: "#000"
   height: "70vh"
