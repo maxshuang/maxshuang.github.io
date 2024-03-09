@@ -15,6 +15,8 @@ banner:
 tags: Database Transaction
 ---
 
+# Background
+
 Transaction 是数据并发读写操作的一种抽象。这种读写操作的特点是：
 1. 读写并发
 2. 可以涉及 single-object 或者 multi-objects
@@ -29,7 +31,7 @@ Transaction 是数据并发读写操作的一种抽象。这种读写操作的�
 
 事务一般和 RDMS(Related Database Manager System) 一起出现，但是作为一种操作抽象，只要涉及到并发的 multi-objects 操作，事务都能提供一个简洁且强大的操作抽象。
 
-# 基本特性
+## 基本特性
 
 事务作为一种操作抽象，提供了 ACID 特性：
 1. Atomicity  
@@ -56,7 +58,7 @@ Transaction 是数据并发读写操作的一种抽象。这种读写操作的�
 4. Durability  
 持久性，事务提交后，即使系统崩溃也不会丢失数据，一般我们指写入本地 non-volatile 介质，比如 HDD/SSD。在一些分布式系统中可能有更高的持久性要求，比如强一致备份。
 
-# Isolation
+## Isolation
 
 业务开发中，利用 SQL 读写数据库已经是个普遍的操作。许多初学者第一次学习数据库就是从如何使用 SQL 进行 CURD 开始的，甚至如果不是做后端开发相关工作，未来很长一段时间都可能在不了解 Isolation Level 的语义下使用 SQL。
 
@@ -113,7 +115,8 @@ commit;
 
 我们使用 MySQL 提供的[隔离级别](https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html)作为例子，其他数据库需要去对应的官网中查看对应隔离级别的语义，因为这个和数据库的实现有关。
 
-## Dirty Read/Write And Read Committed
+### Dirty Read/Write And Read Committed
+
 只考虑 ACID 中的 ACD(因为 Isolation 是我们现在要讨论的)，我们基本只得到了单个事务的保证(不太准确)，没有说明多个事务同时读写相同数据时数据可见性是怎么规定的。
 
 一个自然而然的问题是：
@@ -121,7 +124,8 @@ commit;
 
 这个数据异常就是 Dirty Read 和 Dirty Write，简单说就是读写了未提交的数据。
 
-### Dirty Read
+#### Dirty Read
+
 ```
 initial: A=10
 isolation level: read uncommitted
@@ -139,7 +143,8 @@ isolation level: read uncommitted
 
 在这个并发读写的例子中，我们看到 Transaction1 读取了 Transaction2 还没有提交的 A=20 值，导致了 Transaction1 基于一个不存在的数据 A=20 进行了某些业务操作，甚至是后续的数据库读写操作。
 
-### Dirty Write
+#### Dirty Write
+
 ```
 initial: A=10
 isolation level: read uncommitted
@@ -158,13 +163,15 @@ isolation level: read uncommitted
 
 对于 Dirty Read 和 Dirty Write 这种数据异常，MySQL 提供 Read Committed 这种 isolation level 来解决这个问题，数据库内部可能是采用对 write 加排他锁阻塞 read或者多版本读取 old version data 方式保证只能看到 committed 的数据。
 
-## Read Skew/Non-repeatable Read/Phantom Read And Repeatable Read
+### Read Skew/Non-repeatable Read/Phantom Read And Repeatable Read
+
 解决了读取 uncommitted 数据的数据异常之后，我们获取了一个数据操作 guarantee => 在 read committed 下看到的数据要么是数据提交前的，要么是提交后的。
 
 在这个保证下，会出现的一个问题是：
 *假如事务 A 在事务 B 开始前读取了一次 A 值，在事务 B 结束后又读取了一个 A 值，而事务 B 更新了 A 值，那前后两次读取的值就不一样了。这种算是数据异常吗？底层数据是一致的，但是读到的数据却是部分新部分旧的。*
 
-### Read Skew/Non-repeatable Read
+#### Read Skew/Non-repeatable Read
+
 这就是我们要说的 Read Skew/Non-repeatable Read 的数据异常。 
 
 Read Skew 简单说就是 *Partial Read*, 也就是读取到了部分旧值，读取到了部分新值。  
@@ -187,7 +194,7 @@ isolation level: read committed
 
 这个数据异常会比较微妙，从数据的语义约束上看，我们希望数据是从一个一致性状态过渡到另一个一致性状态，比如转账场景下从转账前的一致性状态过渡到转账后的一致性状态。在这个场景下，数据变更的确满足一致性要求，但是读取操作看到的数据不满足一致性要求。
 
-### Phantom Read
+#### Phantom Read
 同一个事务中除了 partial read 之外，还可能出现前后读取到不同的数据。比如：
 ```
 initial: Column A has two rows(A1=10, A2=10)
@@ -233,7 +240,7 @@ isolation level: repeatable read/snapshot isolation
 
 可以看到 Transaction1 看到的是上一个一致状态(A1=10;A2=10)，底层是新的一致性状态(A1=5;A2=15)。
 
-## Write Skew/Phantom And Serializable
+### Write Skew/Phantom And Serializable
 Repeatable Read（RR)/Snapshot Isolation(SI) 可以极大得提高数据库的事务读写并发，并且可以保证读事务可以一直获取到一个一致状态(虽然可能是旧的)，所以在非常多的业务场景下都会使用 RR 或者 SI 作为隔离级别。
 
 但是 RR 和 SI 就可以实现一般用户心目中的 serializability 了吗？ *还不是*。
@@ -243,7 +250,7 @@ Repeatable Read（RR)/Snapshot Isolation(SI) 可以极大得提高数据库的�
 
 表述得有点抽象，我们举个具体的例子说明一下，分析的过程中要记住**基于历史状态做判断** 这个出问题的点。
 
-### Update Lost
+#### Update Lost
 RR 和 SI 距离 serializability 最远的距离我认为是 **Update Lost**，这是一种非常符合直觉但是却总是得到错误结果的操作，也就是 read-modify-update。举个例子：
 ```
 initial: A=10
@@ -266,7 +273,7 @@ isolation level: rr or si
 1. 在 read 时对所有的数据加上 exclusive lock，避免被其他事务读写，从而串行化不同事务。缺点是并发读写效率低。
 2. 乐观处理机制，在每次 read 时记录下 version，在 commit 时检查所有 read 过的数据 version 是否变更过，变更过就回滚或者重启事务。缺点是热点读写数据可能造成频繁事务重启。 
 
-### Write Skew
+#### Write Skew
 *基于历史状态做判断* 导致数据异常的另外一个有名例子是 write skew，它是一种 read-check-write 操作模式下，write 导致 check 不再成立的一种违反数据语义的异常。举个例子：
 ```
 initial:  A1=1, A2=1
@@ -297,7 +304,7 @@ isolation level: rr or si
 
 这种 write skew 的违反语义约束是实际开发过程中*难以察觉，难以排查*的数据异常。
 
-### Phantom
+#### Phantom
 另一类特殊的 write skew 是幻象 Phantom，在 RR 中我们讨论过 Phantom Read，那个问题已经被 RR 和 SI 解决了，因为 new insert 有更大的 transaction id，所以不会被看到。
 
 这里的 write skew phantom 是一个*更加微妙*的场景。在前面的分析中，我们知道 write skew 的核心问题是 *基于历史状态做判断*， 其中一个解决方案是：
@@ -348,7 +355,7 @@ isolation level: rr or si
 
 解决了所有的数据异常问题，就可以认为数据库提供了 serializability 的隔离级别。目前看能实现 Serializability 且性能较好的是 *[Serializable Snapshot Isolation](https://dl.acm.org/doi/10.1145/1620585.1620587)*，这是 PgSQL 用来实现 Serializability 的算法。
 
-# 总结
+## 总结
 不同隔离级别都是对数据一致性和性能之间的 tradeoff。
 
 本文首先提及业务对事务的迷思---串行化的事务执行(serializability)，然后从 weak isolation level 开始逐步分析可能出现的 data anomaly:
