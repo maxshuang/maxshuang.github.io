@@ -343,6 +343,6 @@ learner 有多种方式可以获取到最终的 chosen value:
 对于这个问题，推荐的比较好的做法是：根据冲突的严重情况，采用 random backoff 延迟下一次 prepare 时间，保证其他 proposal 有充足的时间可以被 accept，从而快速达到 chosen 状态。
 
 ## 总结
-Paxos 算法本身只能对一个值达成共识，比如3个节点中选择选主，它无法直接用于实际场景中日志同步。可以认为它只是对日志中的一个写操作达成了共识，日志同步需要用到 multi-paxos 构建日志状态机，在具体的工程实践上也很复杂。
+Paxos 算法本身只能对一个值达成共识，比如3个节点中选主，它无法直接用于实际场景中的日志同步。可以认为它只是对日志中的一个写操作达成了共识，日志同步需要用到 multi-paxos 构建日志状态机，原始论文《[The Part-Time Parliament](https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf)》有对这方面的描述, 具体工程方面的实践也很复杂。
 
 [simple paxos demo](https://github.com/maxshuang/simple-paxos) 写的一个可以模拟多节点和网络丢包环境的 demo，不算特别完善，可以玩一下。
