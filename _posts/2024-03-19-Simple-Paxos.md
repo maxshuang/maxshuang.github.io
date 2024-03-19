@@ -54,28 +54,31 @@ Paxos 是我最喜欢的算法。在多个节点可以自由设置初始值的�
 ## Paxos 讨论
 之所以一上来先介绍 Paxos 的推理，再到算法，除了和原始论文保持一致之外，还想要展现出该算法展现出的 logical thinking 能力，这是这个算法我觉得最吸引人的地方。
 
-如果大家在没有学习过 Paxos 之前思考过多节点共识问题，就能体会到这个问题的难度，因为多节点在初始化阶段是可以只有设置初始化值的，所以采用哪个节点提交的值就是一个问题。
+如果大家在没有学习过 Paxos 之前思考过多节点共识问题，就能体会到这个问题的难度，因为多节点在初始化阶段是可以自由设置初始化值的，所以采用哪个节点提交的值就是一个问题。
 
 转化成实际生产问题就是，如果系统是多主的(multi-master)，多主同时对一个数据进行操作，如何保证整个系统所有节点对该数据的认知是一致的，比如所有节点对该数据的查询都能返回一致的结果。
 
-一开始的系统会尽量避免这个问题，因为 multi-master 的冲突很难解决，一般需要人工干预。所以系统会采用 single-master 架构，然后采用同步或者异步复制到 slave nodes。即使是现在跨城 multi-master 的架构，也只是用做异步容灾，只提供最终一致性，并且在需要在数据上做逻辑隔离，比如 Datacenter A 数据只能给 City A 的居民读写。 
+一开始的系统会尽量避免这个问题，因为 multi-master 的冲突很难解决，一般需要人工干预。所以系统会采用 single-master 架构，然后采用同步或者异步复制到 slave nodes。即使是现在跨城 multi-master 的架构，也只是用做异步容灾，只提供最终一致性，并且需要在数据上做逻辑隔离，比如 Datacenter A 数据只能给 City A 的居民读写。 
 
-回到 Paxos 算法推理本身，这个推理过程在我看下，最核心的一个点是**多节点间逻辑时钟**的构建。
+回到 Paxos 算法推理本身，在我看来，整个推理过程有个核心的点 => **多节点间逻辑时钟**的构建。
 
-这个核心思想和 Lamport 的另外一些论文《[Time, Clocks, and the Ordering of Events in a Distributed System](https://lamport.azurewebsites.net/pubs/time-clocks.pdf)》有密切关系，它讨论的问题就是多节点在不需要全局时钟的情况下如何构建全局次序。这个全局次序也叫全局逻辑时钟，它在分布式事务中非常重要，因为没有全局时钟就没法界定事务之间的顺序，就会导致数据异常。
+这个核心思想和 Lamport 的另外一些论文《[Time, Clocks, and the Ordering of Events in a Distributed System](https://lamport.azurewebsites.net/pubs/time-clocks.pdf)》有密切关系，它讨论的问题就是多节点在不需要全局时钟的情况下如何构建全局次序。这个全局次序也叫全局逻辑时钟，它在分布式事务中非常重要，因为没有全局时钟就没法界定事务之间的顺序，就可能导致数据异常。
 
 *全局逻辑时钟*的一个核心点就是通过*局部因果关系*(不是太准确的词，在考虑中)构建全局次序。举个例子：
 ```
 node1 and node2 are two different nodes with different local clock in the system
 
 initial:
-node1: 1 2 3 4 5 6 7 8 9 10
-node2: 1 5 10 15 20 25 30 35
+node1(clock): 1 2 3 4 5 6 7 8 9 10
+node2(clock): 1 5 10 15 20 25 30 35
 
 operation:
 node1: 1 2 3 4 5(r1) 6 7 8(w2) 9 10
 node2: 1 5 10(w1) 15(r3) 20 25 30 35
-In this case: we have no idea about the global sequence of r1,w2,w1,r3 because their clocks are not synchronized.
+In this case: 
+1. node1 has two operations: r1 and w2。r1 happens at clock 5, w2 happens at clock 8.
+2. node2 has two operations: w1 and r3。w1 happens at clock 10, r3 happens at clock 15.
+we have no idea about the global sequence of r1,w2,w1,r3 because their clocks are not synchronized.
 
 
 operation:
@@ -84,7 +87,7 @@ node1: 1 2 3 4(r1') => 11(r1) 12 13(w2') => 31(w2) 31 32
             /                   /
 node2: 1 5 10(w1) 15(r3) 20 25 30 35
 
-In this case: 对于 node1 的所有操作发起之前，都先对 node2 发起一次操作，获取 node2 上最新的 clock，从而设置 node1 读写操作的 clock。通过这种方式，我们获得了以下可靠的跨节点逻辑次序：
+In this case: 对于 node1 的所有操作发起之前，都先对 node2 发起一次获取 node2 clock 操作，获取 node2 上最新的 clock，从而设置 node1 读写操作的 clock。通过这种方式，我们获得了以下可靠的跨节点逻辑次序：
 w1(10) => r1(11)
 w1(10) => r3(15) => w2(31)
 原因很简单，比如对于 w2，它在操作之前看到了 node2 的时钟已经是 30，而 node2 自己的时钟是一直单调递增的，所以在 w2 发生之前，w1(10) 和 r3(15) 必定已经发生了，所以可以通过比较逻辑时钟 10<15<31 直接确定跨节点事件发生的先后次序。
@@ -123,15 +126,15 @@ node 和 role 是俩套概念，没有一对一关系，比如系统中存在 3 
 ### 推理
 为了获得满足上述 safety requirements 的 consensus algorithm, 论文开始从最简单的要求开始推理。
 
-1. 为了达成共识，可以手动指定某个 acceptor 为 leader acceptor, 其他 acceptor 只需要被动获取 leader acceptor 的值就行，这样系统很快就可以达成 consensus。比如 leader acceptor 规定接收到的第一个 proposal value 为 chosen value。
+**推理1**： 为了达成共识，可以手动指定某个 acceptor 为 leader acceptor, 其他 acceptor 只需要被动获取 leader acceptor 的值就行，这样系统很快就可以达成 consensus。比如 leader acceptor 规定接收到的第一个 proposal value 为 chosen value。
 
 **问题**： *假如 leader acceptor crash 了，系统就无法运行了，不符合分布式 fault-torelant 的要求*。
 
-2. 为了解决上述的问题，提高系统 fault-torelant 能力，不需要 leader acceptor，any acceptors 都可以接受 any proposers' proposal。
+**推理2**： 为了解决上述的问题，提高系统 fault-torelant 能力，不需要 leader acceptor，any acceptors 都可以接受 any proposers' proposal。
 
 由于网络的不可靠性，acceptor 不知道有多少 proposal 正在或者将要发给自己，所以要求 acceptor 不要等待，要直接 accept 第一个 received proposal。
 
-我们称这个要求为 P1。
+我们称这个要求为 **P1**。
 ![alt text](/assets/images/post/replication-simple-paxos/image-1.png)
 
 在 P1 要求下，我们假设每个 acceptor 只能 accept 一个 proposal。
@@ -145,13 +148,13 @@ node 和 role 是俩套概念，没有一对一关系，比如系统中存在 3 
  v0!=v1!=v2
 ```
 
-3. 为了解决上述问题，那就去掉*每个 acceptor 只能 accept 一个 proposal* 的约束，*允许每个 acceptor accept 多个 proposal*，从而保证系统最终有可能存在 chosen value。
+**推理3**：为了解决上述问题，那就去掉*每个 acceptor 只能 accept 一个 proposal* 的约束，*允许每个 acceptor accept 多个 proposal*，从而保证系统最终有可能存在 chosen value。
 
 此时为了区分不同的 proposal，需要给不同的 proprosal 指定唯一的 proposal number，使用递增数字来表达时序关系。
 
-在允许*每个 acceptor accept 多个 proposal*的前提下，为了满足 safety requirement 2 => only one value is chosen，论文提出了一个系统要求可以满足 safety requirement 2。
+在允许*每个 acceptor accept 多个 proposal*的前提下，为了满足 safety requirement 2 => only one value is chosen，论文提出了一个要求以便满足 safety requirement 2。
 
-要求系统中，一旦第 m 个 proposal => proposal-m value(v0) 被 chosen(也就是 majority acceptor has accepted v0), 之后所有被 chosen 的 proposal-n value(n>m) 都要等于 v0(是和等于在这里是一样的概念)，我们称这个要求为 P2。
+要求系统中，一旦第 m 个 proposal => proposal-m value(v0) 被 chosen(也就是 majority acceptor has accepted v0), 之后所有被 chosen 的 proposal-n value(n>m) 都要等于 v0(是和等于在这里是一样的概念)，我们称这个要求为 **P2**。
 ![alt text](/assets/images/post/replication-simple-paxos/image-2.png)
 
 这样就满足了不管 acceptor 如何规定 accept 多个 proposal 的方式，最终结果都是 only one value is chosen，即使整个系统多次达到了 chosen 状态，这些 chosen value 的值都是一样的。
@@ -160,15 +163,16 @@ node 和 role 是俩套概念，没有一对一关系，比如系统中存在 3 
 > P2 只是一个对算法的要求，该要求中并没有规定 acceptor 要以什么规则 accept 多个 proposal，也没有规定 proposer 要以什么规则设置新的 proposal value。
 
 
-4. 记住我们的目标是要得到一个 consensus algorithm 在同一个值上达成共识。
+**推理4**：记住我们的目标是要得到一个 consensus algorithm 在同一个值上达成共识。
 - 我们从系统的不可靠性出发，要求这个最终算法要满足 P1。
 - 为了满足算法的 safety requirement 2，需要在 P1 的基础上，继续满足 2 个条件：
+
 ```
 1. acceptor 可以 accept 多个 proposal
 2. 满足 P2
 ```
 
-为了满足 P2，论文进一步提出了一个合理的要求 P2a，从而实现 P2。
+为了满足 P2，论文进一步提出了一个合理的要求 **P2a**，从而实现 P2。
 ![alt text](/assets/images/post/replication-simple-paxos/image-3.png)
 
 P2a 表达的意思是： 一旦 proposal-m value v0 被 chosen, 那之后所有被 acceptor accept proposal-n value(n>m) 都要是 v0。
@@ -179,22 +183,22 @@ P2a 表达的意思是： 一旦 proposal-m value v0 被 chosen, 那之后所有
 
 **问题**：*P2a 虽然可以满足 P2, 但是 P1 会导致 P2a 无法被实现，因为假如系统在已经存在 chosen value(v0) 的前提下，有个 new acceptor 和 new proposer 刚 failover 后上线，然后 new proposer 给 new acceptor 提交了一个 proposal value(v1)，根据 P1 的要求，new acceptor 要直接 accept v1，这样就违反了 P2a，因为 P2a 规定了 any acceptors 的行为*。
 
-5. 为了解决 P1 和 P2a 的冲突，我们需要提出对 proposer 提交行为进行约束，不能允许 proposer 提交随意值，起码在系统已经存在 chosen value 时不能再提交随机值。所以论文进一步提出了 P2b 要求：
+**推理5**： 为了解决 P1 和 P2a 的冲突，我们需要提出对 proposer 提交行为进行约束，不能允许 proposer 提交随意值，起码在系统已经存在 chosen value 时不能再提交随机值。所以论文进一步提出了 **P2b** 要求：
 ![alt text](/assets/images/post/replication-simple-paxos/image-4.png)
 
 P2b 要求一旦 proposal-m value(v0) 被 chosen, 那 any proposers 提交的 proposal-n value(n>m) 都要等于 v0。
 
 这个要求解决了 P1 和 P2a 的冲突，同时是个比 P2a 更强的约束，因为规定 any proposers 提交 v0, 自然 any acceptors 只可能 accept v0，没有其他可选项。
 
-6. 为了实现 P2b 要求，一个直觉是： proposer 在决定 proposal value 之前是需要询问系统 majority acceptor，否则不可能知道系统已经有了 chosen value。
+**推理6**： 为了实现 P2b 要求，一个直觉是： proposer 在决定 proposal value 之前是需要询问系统 majority acceptor，否则不可能知道系统已经有了 chosen value。
 
-*但是要以什么样的方式询问呢？需要询问什么信息呢？* 
+**但是要以什么样的方式询问呢？需要询问什么信息呢？**
 
 接下来就是论文的**闪光点**了。
 
 我们再复述一遍 P2b，当 proposal-m value v0 被 chosen 时，对于 n>m，any proposers 提出的 any proposal-n value == v0。
 
-我们现在想要找到一种 Q 算法，使得最终的结论 any proposal-n value==v0 成立，从而满足整个推理链, P2b => P2a => P2。
+我们现在想要找到一种 Q 算法，使得最终的结论 any proposal-n value==v0 成立，从而满足整个推理链, **P2b => P2a => P2**。
 
 为了找到这个算法 Q，需要绕一下，先假如已经存在某种算法 Q 使得 P2b 已经满足，成为一个定理。那就可以在某种算法 Q 下用数学归纳法对 P2b 进行证明。对应的数学归纳法如下：
 ```
@@ -212,12 +216,12 @@ last state： 对于 any proposal-(m, n-1]，都已经满足 proposal-(m, n-1] v
 说明集合 C 中 every acceptor，至少 has accepted 其中一个 proposal-[m, n-1]，这个性质包含了上面的性质，起码最基本的 every acceptor in C has accepted proposal-m value v0。
 另外一个性质就是，因为 any proposal-\(m, n-1\] value\==v0，所以 any acceptors accepted proposal-(m, n-1] value==v0, 因为没有其他可选项。
 
-在上面的性质下，为了保证 any proposal-n value==v0 成立，论文提出了一个 Q 算法，也就是论文中的 P2c invariant：
+在上面的性质下，为了保证 any proposal-n value==v0 成立，论文提出了一个 Q 算法，也就是论文中的 **P2c invariant**：
 ![alt text](/assets/images/post/replication-simple-paxos/image-5.png)
 
 翻译过来就是：在 proposer 决定 proposal-n value 之前，向某个 majority acceptors 集合 S 询问他们当前的 accepted value，并从中选择小于 n 的 highest proposal number 对应的 proposal value 作为自己的 proposal-n value，这样就能保证 proposal-n value==v0。
 
-*为什么 P2c 就可以作出这种保证*？
+**为什么 P2c 就可以作出这种保证**？
 
 1. 假如 highest proposal number 在范围 (m, n-1] 内，则可以确定对于对应的 proposal value==v0，因为这个范围的所有 proposal value 都是 v0，这是个已经条件。
 2. 假如 highest proposal number 在范围 (0, m] 内，因为任何 majority acceptors 集合 S 都会和集合 C 至少有一个 overlap acceptors，所以 highest proposal number == m，accepted value=v0, 这个也是已知条件。
@@ -226,7 +230,7 @@ last state： 对于 any proposal-(m, n-1]，都已经满足 proposal-(m, n-1] v
 
 **问题**： *要实现 P2c 还有个实际的问题需要解决，就是选择这个 highest proposal number 在分布式环境下是很难做到的，因为 P2c 是在一个理想的前提条件下(已经达到了 chosen 状态，已经经过了 proposal-m), 然后按照 P2c 的要求确定 proposal-n value 就行*。
 
-*实际的场景不是这样的，因为每个 proposer/acceptor 都在独立得决定应该 propose/accept 什么样的 proposal。proposer 在获得 proposal number n 的时候，系统可能还没有开始 proposal-m 的提交，同时它也不可能知道 proposal-m value 一定会成为 chosen value*。
+**实际的场景不是这样的，因为每个 proposer/acceptor 都在独立得决定应该 propose/accept 什么样的 proposal。proposer 在获得 proposal number n 的时候，系统可能还没有开始 proposal-m 的提交，同时它也不可能知道 proposal-m value 一定会成为 chosen value**。
 
 *所以说 P2c 中的 highest proposal number 指的是，在 proposer n 开始询问时，在 (0,n] 范围内 any acceptor **可能获取** 到的 highest proposal number，而不是在 (0,n] 范围内 any acceptor **已经获取** 到的 highest proposal number。*
 
@@ -234,11 +238,11 @@ last state： 对于 any proposal-(m, n-1]，都已经满足 proposal-(m, n-1] v
 
 举个简单的例子：
 ```
-m=5
-chosen value=v0
+future chosen proposal number: m=5
+future chosen value=v0
 n=10
 
-Current State: <proposal number, value>
+Current State(<proposal number, value>):
 acceptor0: <1, v0>
 acceptor1: <2, v1>
 acceptor2: <3, v2>
@@ -263,7 +267,8 @@ proposer1:
 
 此时，即使 proposer0 使得系统存在 chosen value=v0 状态，proposer1 的行为也直接违反了 P2c invariant，导致推理链条上的 P2c => P2b => P2a => P2 全部不成立，则无法满足 consensus algorithm 的 safety requirement 2。
 
-7. 上诉提到的问题的核心点在于，分布式环境下，proposer 在询问 acceptor 当前状态之后，是无法预测是否存在区间 (current highest proposal number of acceptor, my proposal number) 内的 proposal 会被对应的 acceptor accept，也就是无法预测未来发生的事情。比如：
+**推理7**： 上诉提到的问题的核心点在于，分布式环境下，proposer 在询问 acceptor 当前状态之后，是无法预测是否存在区间 (current highest proposal number of acceptor, my proposal number) 内的 proposal 会被对应的 acceptor accept，也就是无法预测未来发生的事情。比如：
+
 ```
 proposer1: 
     current proposal number=10
@@ -299,6 +304,7 @@ proposer1:
 
 这个算法过程分成 Prepare 阶段和 Accept 阶段：
 1. Prepare 阶段:
+
 ```
 Proposer: 获取一个 new proposal number n, 然后发送 prepare request (prepare-n) 到 majority acceptors。
 
@@ -308,6 +314,7 @@ Acceptor: receives prepare-n
 ```
 
 2. Accept 阶段
+
 ```
 Proposer: 
     * if 超时获取不到 majority acceptors 的正确应答或者 received 到一个无效 prepare 应答，就重新开始 Prepare 阶段。
@@ -335,6 +342,7 @@ learner 有多种方式可以获取到最终的 chosen value:
 
 对于这个问题，推荐的比较好的做法是：根据冲突的严重情况，采用 random backoff 延迟下一次 prepare 时间，保证其他 proposal 有充足的时间可以被 accept，从而快速达到 chosen 状态。
 
-# 总结
-利用 actor 实现了最简单的 [simple paxos](https://github.com/maxshuang/simple-paxos)，不算特别完善，可以玩一下。
+## 总结
+Paxos 算法本身只能对一个值达成共识，比如3个节点中选择选主，它无法直接用于实际场景中日志同步。可以认为它只是对日志中的一个写操作达成了共识，日志同步需要用到 multi-paxos 构建日志状态机，在具体的工程实践上也很复杂。
 
+[simple paxos demo](https://github.com/maxshuang/simple-paxos) 写的一个可以模拟多节点和网络丢包环境的 demo，不算特别完善，可以玩一下。
