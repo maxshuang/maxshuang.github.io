@@ -8,7 +8,7 @@ banner:
   image: /assets/images/post/linux-kernel-memory-layout/pexels-hendrik-cornelissen-2862070.jpg
   opacity: 0.618
   background: "#000"
-  height: "70vh"
+  height: "55vh"
   min_height: "38vh"
   heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
   subheading_style: "color: gold"

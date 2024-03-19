@@ -8,7 +8,7 @@ banner:
   image: assets/images/post/what-linux-kernel-does/pexels-thomas-b-814898.jpg
   opacity: 0.618
   background: "#000"
-  height: "95vh"
+  height: "55vh"
   min_height: "50vh"
   heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
   subheading_style: "color: gold"
