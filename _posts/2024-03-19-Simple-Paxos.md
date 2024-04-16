@@ -15,7 +15,7 @@ banner:
 tags: Distributed-System Replication
 ---
 
-# Background
+## Background
 
 这篇博客主要讲下 Simple-Paxos 算法，它属于分布式系统多备份一致性(consistency)的领域, 这里的 consistency 说的是 recency requirement，即多备份场景下数据的 newest write 会被什么时候看到。
 
@@ -32,7 +32,7 @@ tags: Distributed-System Replication
 
 强一致不代表每个 write 都要等待所有备份都确认，因为这样只要有一个备份无法访问，整个系统就无法 write 了。现在的强一致基本都是采取*多数派读写(majority read/write)*，majority read 涉及的节点集合和 majority write 的节点集合至少有 1 个是重合的，提高了系统 fault-tolerant 能力的同时，也能读到 newest write。
 
-# Paxos consensus algorithm
+## Paxos consensus algorithm
 
 Paxos 共识算法的目标是：   
 在没有中心节点或者手动指定中心节点的场景下，多个节点可以对**同一个值**达成共识(consensus)(多数节点认可同一个 value)，比如 3 个人中至少有 2 个人认可 A 作为 leader。
@@ -51,7 +51,7 @@ Paxos 是我最喜欢的算法。在多个节点可以自由设置初始值的�
 
 我们跟随 [Paxos Make Simple](https://lamport.azurewebsites.net/pubs/paxos-simple.pdf) 这篇论文的脚步看下 Paxos 推理和算法。
 
-## Paxos 讨论
+### Paxos 讨论
 之所以一上来先介绍 Paxos 的推理，再到算法，除了和原始论文保持一致之外，还想要展现出该算法展现出的 logical thinking 能力，这是这个算法我觉得最吸引人的地方。
 
 如果大家在没有学习过 Paxos 之前思考过多节点共识问题，就能体会到这个问题的难度，因为多节点在初始化阶段是可以自由设置初始化值的，所以采用哪个节点提交的值就是一个问题。
@@ -95,9 +95,9 @@ w1(10) => r3(15) => w2(31)
 
 Paxos 推理中也隐含了这种利用*局部因果关系*构建全局时钟的思想。
 
-## Paxos 推理
+### Paxos 推理
 
-### 算法性质
+#### 算法性质
 首先，Paxos 是一个 consensus 算法，它是系统中多节点(nodes)对单个值达成共识，即系统中 majority nodes 接受(accepted) 了值 v0，我们说值 v0 被整个系统选中(chosen)。
 
 > NOTE:  
@@ -115,7 +115,7 @@ Paxos 推理中也隐含了这种利用*局部因果关系*构建全局时钟的
 3. 只有一个值 v0 成为 chosen value 之后，观察者才可以认为值 v0 被 chosen 了。  
 系统没有达到共识之前，观察者不能自己错误认为系统已经存在 chosen value。
 
-### 角色定义
+#### 角色定义
 系统存在 3 种角色(role)： proposer, acceptor 和 learner。
 * proposer: 负责提出提案(proposal)，proposal 中包含一个 proposal value，表示 proposer *希望* 被系统 chosen 的值。
 * acceptor: 负责接受(accept) proposal，相当于委员会成员。
@@ -123,7 +123,7 @@ Paxos 推理中也隐含了这种利用*局部因果关系*构建全局时钟的
 
 node 和 role 是俩套概念，没有一对一关系，比如系统中存在 3 个 node，每个 node 都可以拥有 proposer/acceptor/learner 的 role，既可以自己提案 propose，也可以 accept proposal。
 
-### 推理
+#### 推理
 为了获得满足上述 safety requirements 的 consensus algorithm, 论文开始从最简单的要求开始推理。
 
 **推理1**： 为了达成共识，可以手动指定某个 acceptor 为 leader acceptor, 其他 acceptor 只需要被动获取 leader acceptor 的值就行，这样系统很快就可以达成 consensus。比如 leader acceptor 规定接收到的第一个 proposal value 为 chosen value。
@@ -291,7 +291,7 @@ proposer1:
 
 到这里整个算法的推导就结束了，同时在推导过程中通过解决所有问题，也为 proposer 和 acceptor 制定了相应的行为约束，从而保证推导链的成立。
 
-## Paxos 算法流程
+### Paxos 算法流程
 
 上面的推导流程涉及的行为约束大致为：
 1. proposer 在正式提案之前，需要做 majority read 查询获取系统历史信息，然后再提交 proposal。
@@ -325,7 +325,7 @@ Acceptor： receives accept request <n, v>
     * else accepted proposal <n, v>，回应成功。
 ```
 
-## Paxos 算法终止
+### Paxos 算法终止
 
 由于 Paxos 算法保证了系统中 only one value is chosen，所以只要通过 majority read 发现存在被 majority acceptors accepted 的值，则认为算法运行结束。
 
@@ -334,7 +334,7 @@ learner 有多种方式可以获取到最终的 chosen value:
 2. 每次 acceptor accepted 了某个 proposal，就把值发给所有 learner，每个 learner 自行判断即可。
 3. 每次 acceptor accepted 了某个 proposal，就把值发给部分 learner，等 learner 确定 chosen value 存在后，再通知其他 learner。
 
-## Paxos 算法 Liveness
+### Paxos 算法 Liveness
 
 上面在 Paxos 算法推导中只考虑了 safety requirement，没考虑 liveness，即算法需要能一直推进。
 
