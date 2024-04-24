@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Synchronization(Basic)
+title: Linux Kernel-Lock(Basic)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
