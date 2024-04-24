@@ -228,6 +228,9 @@ last state： 对于 any proposal-(m, n-1]，都已经满足 proposal-(m, n-1] v
 
 到这里可以看出只要满足 P2c 的要求，就可以证明数学归纳法，自然满足 P2b 要求。
 
+以上是 P2c (b) 条件的推理，P2c (a) 是个更加 trivial 的情况，当 majority nodes 都没有接收过任何值时，也可以设置 value==v0，这样也不会违反 P2b 要求。
+
+
 **问题**： *要实现 P2c 还有个实际的问题需要解决，就是选择这个 highest proposal number 在分布式环境下是很难做到的，因为 P2c 是在一个理想的前提条件下(已经达到了 chosen 状态，已经经过了 proposal-m), 然后按照 P2c 的要求确定 proposal-n value 就行*。
 
 **实际的场景不是这样的，因为每个 proposer/acceptor 都在独立得决定应该 propose/accept 什么样的 proposal。proposer 在获得 proposal number n 的时候，系统可能还没有开始 proposal-m 的提交，同时它也不可能知道 proposal-m value 一定会成为 chosen value**。
