@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Algorithm-Graph(Basic)
+title: Algorithm-Graph(Basic)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
