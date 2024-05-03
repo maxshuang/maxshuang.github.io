@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Graph(Basic)
+title: Algorithm-Graph(Basic)(Ongoing)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
@@ -19,13 +19,13 @@ tags: Algorithm Graph
 
 ## 图
 
-图结构是现实世界的一个重要抽象，表达的是顶点间关联关系，广泛存在于多种场景中，比如：
+图结构是现实世界的一个重要抽象，表达的是实体间的关联关系，广泛存在于多种场景中，比如：
 * 地图：非常直接的图关系，地点是顶点，道路是路径。
 * 人际关系和社交网络：每个人有多个好友，好友又有好友，可能存在环状的相识链，好友关系一般是双向关系，而微博等平台的关注关系则是单向关系。
 * 网站超链接：网站作为经典的分布式应用，网站内部通过维护其他网站超链接的方式组成一个超大规模图。
 * 商品调度/贸易关系/软件设计：这些场景都涉及了多个模块之间的交互，自然存在顶点和连接的图抽象。
 
-经典的图分类可以分成无向图和有向图：
+经典的图可以分成无向图和有向图：
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 ![directed-graph](/assets/images/post/algorithm-graph/classic-directed-graph.png)
 
@@ -33,49 +33,30 @@ tags: Algorithm Graph
 
 图由顶点和边构成，存在以下性质和相关概念：  
 ![attributes](/assets/images/post/algorithm-graph/anatomy-of-a-graph.png)
-1. 顶点度(degree)/入度(in-degree)/出度(out-degree)：直接连接到该顶点的边个数称为顶点的度，在有向图中，度被进一步区分成入度和出度。
-2. 路径(path)/路径长度(length of path)：边连接的一系列顶点称为路径，路径长度为边的个数。
-3. 联通(connected)/联通分量(connected component): 当每个顶点对其他顶点都存在至少一条路径时我们称图是联通的；联通分量表示图中互相联通的顶点集合；一个图中可能含有多个联通分量。
-4. 无环图(acyclic graph): 一个图中没有环则称为无环图，是一颗树。
+1. **顶点度(degree)/入度(in-degree)/出度(out-degree)**：直接连接到该顶点的边个数称为顶点的度，在有向图中，度被进一步区分成*入度*和*出度*。
+2. **路径(path)/路径长度(length of path)**：边连接的一系列顶点称为路径，路径长度为边的个数。
+3. **连通(connected)/连通分量(connected component)**: 当每个顶点对其他顶点都存在至少一条路径时我们称图是连通的。连通分量表示图中互相连通的顶点集合。一个图中可能含有多个连通分量。
+4. **无环图(acyclic graph)**: 一个图中没有环则称为无环图，是一颗树。
 ![acyclic-graph](/assets/images/post/algorithm-graph/acyclic-graph.png)
-5. 生成树(spanning tree)：一个图中连接所有顶点的树称为生成树，生成树恰好有 V-1 条边，且添加任意一条额外的边都会在树中成环。比如下图中阴影部分就是各个联通分量的生成树，生成树在研究*图连通性*和*最小连通问题*等问题领域都有重要作用。
+5. **生成树(spanning tree)**：一个图中连接所有顶点的树称为生成树，生成树恰好有 V-1 条边，且添加任意一条额外的边都会在树中成环。比如下图中阴影部分就是各个连通分量的生成树，生成树在研究*图连通性*和*最小连通问题*等问题领域都有重要作用。
 ![spanning-tree-forest](/assets/images/post/algorithm-graph/spanning-tree-forest.png)
-6. 森林(forest)和生成树森林(spanning forest): 多个树组成森林，多个生成树组成生成树森林。
+6. **森林(forest)和生成树森林(spanning forest)**: 多个树组成森林，多个生成树组成生成树森林。
 
 ## 图的表示和操作
-
-图在大的分类上分成无向图和有向图，无向图的边是双向的，有向图的边是单向的。
-
-在下面的表示中，为了结构清晰，参考[算法4](https://algs4.cs.princeton.edu/home/)我们会将图的表示分成图行为和图实现，并且分离出图搜索等相关算法。其中：
-* 图行为：提供一个图的基本操作，比如顶点个数，边个数，特点顶点的顶点集等。
+在下面的表示中，为了结构清晰，参考[算法4](https://algs4.cs.princeton.edu/40graphs/)我们会将图的表示分成图行为和图实现，并且分离出图搜索等相关操作算法。其中：
+* 图行为：提供图的基本操作，比如顶点个数，边个数，顶点的邻接顶点集等。
 * 图实现：具体实现图的方法，比如是使用数组还是链表存储顶点和边集合。
-* 图操作：包括图搜索等算法，每个操作可以独立开来，只和图行为交互，和图表示没有关系。
+* 图操作：包括图搜索等算法，每个操作都可以独立开来，只和图行为交互，和图表示没有关系。
 
-在描述图和图算法过程中，我们使用面向对象的语言 C++，面向对象的设计方法可以有效实现隐藏相关实现，并且通过 public 接口定义可以明确各组件的交互边界。
+在描述图和图算法过程中，我们使用面向对象的语言 C++。面向对象的设计方法可以有效隐藏相关实现，并且通过 public 接口明确定义各组件的交互边界。
 
-### 图的操作
+### 图的行为
 
-无向图中所有顶点间连接都是无向的。图行为定义如下：
+不管是有向图还是无向图，图行为都可以定义如下：
+
 ```
 /**
- * @struct Edge
- * @brief Represents an edge in the graph.
- */
-struct Edge
-{
-    //
-    // behavior
-    //
-    Edge(int s, int d, double w=0.0);
-    int Src() const;
-    int Dest() const;
-    double Weight() const;
-    bool operator==(const Edge& other) const;
-};
-
-/**
  * @struct Graph
- * @brief Represents an undirected graph without edge weights.
  */
 class Graph
 {
@@ -83,21 +64,68 @@ class Graph
     // behavior
     //
 public:
-    typedef ConstIterator2<Edge> const_iterator;
+    // Iterator is the iterator for adjacency vertices list
+    typedef Iterator<Edge> const_iterator;
+    
+    // constructor and destructor
     UndirectedGraph(int V);
     ~UndirectedGraph();
+
+    // AddEdge adds a new edge to graph
+    // an edge includes <start vertex, end vertex, weight>
     void AddEdge(int s, int t, double w = 0);
-    int V() const;
-    int E() const;
+
     // Adj() returns a pair of const iterator [begin, end) for the adjective vertices list
     std::pair<const_iterator, const_iterator> Adj(int v) const;
+    
     // Edges() returns a pair of const iterator [begin, end) for the whole edge list
     std::pair<const_iterator, const_iterator> Edges();
+
+    // V() returns the number of vertices in graph
+    int V() const;
+
+    // E() returns the number of edges in graph
+    int E() const;
 };
 ```
 
+其中需要特殊提下 Iterator, C++ 和 Java 的 iterator 设计理念不同。从泛化的角度看, 我个人认为 Java 的 Iterator<T> 接口是个更加优雅的方式, 因为它只是一个纯行为, 抽象得更好。而 C++ 的 iterator 是和实现相关的, 虽然它隐藏了 iterator 内部的实现, 但是 iterator 本身还是属于某个实现, 比如 std::vector<T>::iterator 和 std::list<T>::iterator, 这种实现虽然不是纯行为, 但是它可以给 iterator 设置不同的类型, 从而根据不同的特化做更好效率的实现, 比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。整个 std::algorithm 的设计也是遵循这种设计理念。 
+
+但是在这里，我们其实不关心图的实现，所有的算法都只关心行为，所以设计 Iterator 这种能进一步隐藏图内部 container 的 iterator。后续可能会修改下，不过大致思路还是希望能使用一个纯行为的 iterator。
+
+```
+template <class T>
+class Iterator : public std::iterator<std::forward_iterator_tag, T> {
+public:
+    virtual ~Iterator() {}
+
+    virtual Iterator& operator++() = 0;
+    virtual Iterator operator++(int) = 0;
+    virtual bool operator==(const Iterator& other) const = 0;
+    virtual bool operator!=(const Iterator& other) const = 0;
+    virtual T* operator->() const = 0;
+    virtual T& operator*() const = 0;
+};
+```
+
+通过返回一对 Iterator pair，我们可以复用 std::algorithm 的相关算法，比如 std::for_each。
+
 ### 图的表示
-[TODO]
+图的表示根据不同的数据场景和访问模式可以有多种表示方式，这就是我们平时在存储中经常提及的 Data Model。
+
+对于 dense graph，可以使用邻接矩阵(adjacency-matrix)的方式表示 $graph[V][V]$，这种方式的特点是数据紧凑，data locality 特性好，硬件缓存击中率高。picture from [wiki](https://en.wikipedia.org/wiki/Adjacency_matrix)。
+![adjacency-matrix](/assets/images/post/algorithm-graph/adjacency_matrix.png)
+
+对于 sparse graph，可以使用邻接链表(adjacency-lists)的方式表示，这种方式节省空间。
+![adjacency-lists](/assets/images/post/algorithm-graph/adjacency_lists.png)
+
+对于固定顶点和边的小图，可以使用数组的方式按序存储。
+
+发挥想象力，还有各种各样的表示方式，比如如果把 vertex 看成 value，存储过程中需要使用索引的方式访问，所以可以是顶点 index 或者是其他属性，此时所有的索引都可以组织 vertices。比如各种树型结构，二叉树，红黑树，AVL树，B/B+/B-树。
+
+设置如果想持久化，可以用 key-value 按序存储到文件，或者 B 族树都可以很好实现。
+
+再拓展下，类似 OLTP 中使用 row 做为 data model，而 OLAP 使用 column 作为 data model。如果顶点中有很多属性，又需要加速对图中顶点属性的分析，也可以参考 column storage 进行表示。
 
 ## 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
 
