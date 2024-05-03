@@ -129,7 +129,7 @@ public:
 
 ## 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
 
-图的深度遍历是指优先访问路径中的 succesor vertice, 相当于多叉树的后序遍历。图的宽度优先遍历是指优先访问当前顶点的所有邻接顶点，再访问二级邻接顶点，类似 Fan-out 的访问模式。
+图的深度优先遍历是指优先访问路径中的 succesor vertice, 相当于多叉树的后序遍历。图的宽度优先遍历是指优先访问当前顶点的所有邻接顶点，再访问二级邻接顶点，类似 Fan-out 的访问模式。
 
 ### 深度优先遍历(DFS)
 
@@ -147,7 +147,7 @@ void DfsPaths::dfs(const UndirectedGraph& G, int v) {
 }
 ```
 
-DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$。
+DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$，用于存储标记 marked_ 数组和 DFS 遍历树 edge_to_。
 
 ### 宽度优先遍历(BFS)
 
@@ -166,7 +166,7 @@ void BfsPaths::bfs(const UndirectedGraph& G, int v) {
         std::for_each(pair.first, pair.second, [&,x](const Edge& w){
             if (!marked_[w.Dest()]) {
                 edge_to_[w.Dest()] = x;
-                // mark the vertice before pushing to the queue
+                // mark the vertex before pushing to the queue
                 marked_[w.Dest()] = true;
                 q.push(w.Dest());
             }
@@ -182,7 +182,7 @@ BFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以�
 
 ### 环检测
 
-环检测是图的一个常见应用，使用的方法也非常直接 DFS。DFS 本质上是多叉树的回溯访问，在环检测中，我们可以维护当前访问的 path，如果发现邻接顶点已经在 path 中，说明当前 path 成环了。
+环检测是图的一个常见应用，使用的方法也非常直接---DFS。DFS 本质上是多叉树的回溯访问，在环检测中，我们可以维护当前访问的 path，如果发现邻接顶点已经在 path 中，说明当前 path 成环了。
 
 无向图在环检测实现中要注意排除掉起始顶点，避免误判，比如边<2, 3>，DFS 从 2 访问到 3，3 可能又沿着原始边 <2, 3> 访问到 2，导致误判。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/cycle.hpp)。
 ```
@@ -228,14 +228,14 @@ void dfs_recur(const UndirectedGraph &g, int v, int from)
 }
 ```
 
-环检测时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
+环检测本质上还是一次 DFS，所有其 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
 ### 连通分量(Connected Component)
 
-无向图另外一个有意思的性质是连通性 connectivity，因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected，我们称为连通分量(Connected Component)，比如下图中就存在 3 个连通分量。
+无向图另外一个有意思的性质是连通性 connectivity。因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected。我们称为这样的连通的顶点集为连通分量(Connected Component)，比如下图中就存在 3 个连通分量。
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 
-一次 DFS 就可以访问到一个连通分量中的所有顶点，所以只要对图中逐个顶点进行 DFS 即可知道图中有多少个 Connected Component，当然已经访问过的顶点就不用再运行 DFS 了。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/connected_component.hpp)。
+一次 DFS 就可以访问到一个连通分量中的所有顶点，所以只要对图中逐个顶点进行 DFS 即可知道图中有多少个 Connected Component。当然已经访问过的顶点就不用再运行 DFS 了。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/connected_component.hpp)。
 ```
 void ConnectedComponent::dfs(const UndirectedGraph &G)
 {
@@ -264,15 +264,17 @@ void ConnectedComponent::dfs_recur(const UndirectedGraph &G, int v)
 }
 ```
 
-检测连通分量其实本质上和对一个连通图运行一次 DFS 没有区别，时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
+检测连通分量其实本质上和对一个连通图运行一次 DFS 没有区别，Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
 ## 有向图
 
-有向图的边是单向的，只能起始顶点到结束顶点，没有反向性质，所以有向图研究的是可达性 reachability，不是 connectivity。它是单向关系的建模，比如社交网络中粉丝对偶像的单向关注，职场环境中下级对上级的单向汇报关系等。
+有向图的边是单向的，只能从起始顶点到结束顶点，没有反向性质，所以有向图研究的是可达性 reachability，不是 connectivity。它是单向关系的建模，比如社交网络中粉丝对偶像的单向关注，职场环境中下级对上级的单向汇报关系等。
 
 ### 环检测和 DAG(Directed Acyclic Graph)
 
-有向图的环检测和无向图一样，都是通过为当前 path 判断是否出现了 path 回环。无环有向图被称为 DAG(Directed Acyclic Graph), DAG 被广泛应用于任务调度中，因为 DAG 可以获得一个满足所有 precedence contraint 的拓扑排序，使得任务调度可以依序进行。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/dag.hpp)。
+有向图的环检测和无向图一样，都是通过为当前 path 判断是否出现 path 回环。无环有向图被称为 DAG(Directed Acyclic Graph), DAG 被广泛应用于任务调度中，因为 DAG 可以获得一个满足所有 precedence contraint 的拓扑排序，使得任务调度可以依序进行。
+
+环检测实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/dag.hpp)。
 
 ```
 void dfs(const Digraph &G)
@@ -310,7 +312,7 @@ void dfs_recur(const Digraph &G, int v, int from)
     edge_to_[v]=-1;
 }
 ```
-有向图环检测也是类似运行一次 DFS，时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
+有向图环检测也是类似运行一次 DFS，Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
 ### DAG 和拓扑排序(Topological Sort)
 
@@ -326,7 +328,7 @@ DAG 是对无循环依赖的关系的一个抽象，比如多个任务之间互�
 <2, 3>
 <3, 4>
 
-pre-order DFS: 1 -> 3 -> 4 -> 2
+possible pre-order DFS: 1 -> 3 -> 4 -> 2
 we need topological sort: 1 -> 2 -> 3 -> 4
 ```
 
@@ -341,11 +343,13 @@ we need topological sort: 1 -> 2 -> 3 -> 4
 1. 如果先访问到 <A, B>，则一定会继续访问 <B, C>， <C, D>，此时有向关系导致顶点的 post-order 输出为 {D, C, B, A};
 2. 如果先访问到 <A, C>, 则一定会继续访问 <C, D>, 再回溯访问 <B, C>， 此时 post-order 输出为 {D, C, B, A};
 
-他们的 reverse post order 都为 {A, B, C, D}，*貌似 reverse post-order traversal 能在一次 DFS 后捕获到一个顶点的所有邻接顶点间的次序关系*。
+他们的 reverse post-order 都为 {A, B, C, D}，*貌似 reverse post-order traversal 能在一次 DFS 后捕获到一个顶点的所有邻接顶点间的次序关系*。
 
 *为什么呢?*
 
-我没法准确描述这里的原因。只能从观察上看到，如果先访问到 precedence vertex，则 DFS 本身就可以保证 partial topological sort。如果先访问到 successor vertex，回溯算法本身也可以保证 precedence vertex 会被后访问，仍然保证 partial topological sort。
+我没有想到一个准确的词语描述这里的原因。只能从观察上看，
+1. 如果先访问到 precedence vertex，则 DFS post-order 本身就可以保证 reverse topological sort。
+2. 如果先访问到 successor vertex，回溯算法本身也可以保证 precedence vertex 会被后访问，仍然保证 reverse topological sort。
 
 [完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/topological.hpp)。
 ```
@@ -394,21 +398,21 @@ void reverse_order()
 }
 ```
 
-Topological Sort 算法本质上一次 DFS， 它的 Time Complexity 为 $O(E+V)$, Space Complexity 为 $O(V)$。
+Topological Sort 算法本质上也是一次 DFS， 它的 Time Complexity 为 $O(E+V)$, Space Complexity 为 $O(V)$。
 
 ### 传递闭包(Transitive Closure)
 
-传递闭包是数学上的概念，指是在集合$X$上求包含关系$R$的最小传递关系。[从关系图的角度来说，通途易懂得讲，就是如果原关系图上有 $i$ 到 $j$ 的路径，则其传递闭包的关系图上就应有从 $i$ 到 $j$ 的边](https://zhuanlan.zhihu.com/p/266356742)。
+传递闭包是数学上的概念，指是在集合$X$上求包含关系$R$的最小传递关系。[从关系图的角度来说，就是如果原关系图上有 $i$ 到 $j$ 的路径，则其传递闭包的关系图上就应有从 $i$ 到 $j$ 的边](https://zhuanlan.zhihu.com/p/266356742)。
 
 所以本质上传递闭包讨论的是*有向图中顶点对的可达性 reachability*，任意两个顶点可达，则传递闭包的关系图上就有对应的边。
 
-不同于无向图，其传递闭包可以用连通分量或者 Union-Find 算法很好表示，因为边的关系是双向的，有向图的传递闭包问题要复杂一点。举个例子：
+不同于无向图，其传递闭包可以用连通分量或者 Union-Find 算法很好表示，因为边的关系是双向的。有向图的传递闭包问题要复杂一点。举个例子：
 ```
 1 -> 2 -> 3
 ```
 一次从 1 开始的 DFS 就可以确定 {1, 2}, {1, 3}, {2, 3} 是可达，但是却不能确定 {2, 1} 和 {3, 1}是不是可达的。
 
-暴力解法可以解决这个问题，我们分别从所有的顶点开始运行一次 DFS，这样我们就知道 all-pairs reachability。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/transitive_closure.hpp)。
+暴力解法可以解决这个问题，我们分别从所有的顶点开始运行 DFS，这样我们就知道 all-pairs reachability。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/transitive_closure.hpp)。
 ```
 TransitiveClosure(const Digraph &g)
 {
@@ -421,11 +425,11 @@ bool Reachable(int v, int w) const
 }
 ```
 
-也可以用 $V*V$ 矩阵的方式表示 Transitive Closure，本质上和上述实现是一样的，矩阵中的每一行相当于 DirectDFS 类内部的 $marked_[V]$ 标记数组。 
+也可以用 $V*V$ 矩阵的方式表示 Transitive Closure，本质上和上述实现是一样的，矩阵中的每一行相当于 DirectDFS 类内部的 marked_[V] 标记数组。 
 
 DFS 版本的 Transitive Closure Time Complexity 为 $O(V*(E+V))$, Space Complexity 为 $O(V^{2})$。
 
-以上是 sparse graph 的求解时间复杂度，如果是 dense graph，使用 adjacency matrix $graph[V][V]$ 来表示图，则需要遍历任意两个顶点所有中间顶点的方式确定 reachability，原理上也是暴力遍历，被称为 Floyd Warshall Algorithm。Time Complexity 为 $O(V^{3}))$, Space Complexity 为 $O(V^{2})$。[代码来源](https://www.geeksforgeeks.org/transitive-closure-of-a-graph/)。
+以上是 sparse graph 的求解时间复杂度，如果是 dense graph，使用 adjacency matrix $graph[V][V]$ 来表示图，则需要遍历任意两个顶点所有中间顶点的方式确定 reachability，原理上也是暴力遍历，这称为 Floyd Warshall Algorithm。Time Complexity 为 $O(V^{3}))$, Space Complexity 为 $O(V^{2})$。[代码来源](https://www.geeksforgeeks.org/transitive-closure-of-a-graph/)。
 ```
 /* Add all vertices one by one to the
     set of intermediate vertices.
@@ -464,7 +468,7 @@ for (k = 0; k < V; k++)
 
 ### 强连通分量(Strongly Connected Component)
 
-类似于无向图中的连通分量，有向图也有强连通分量的概念，因为有向图的边是单向关系，所以有向图的强连通分量一定要成环才能达到互相可达(reachable)的效果。下图展示不同顶点数的强连通分量，单个顶点自己也是一个强连通分量。
+类似于无向图中的连通分量，有向图也有强连通分量的概念。因为有向图的边是单向关系，所以有向图的强连通分量一定要成环才能达到互相可达(reachable)的效果。下图展示不同顶点数的强连通分量，单个顶点自己也是一个强连通分量。
 ![strongly_connected_component](/assets/images/post/algorithm-graph/strongly_connected_component.png)
 
 特别得，我们可以把一个强连通分量看成一个大型顶点，这样整个图就可以描述成正常顶点和大型顶点的 DAG 图。这种大型顶点可能在信息压缩和模型建模上带来一些便利。
