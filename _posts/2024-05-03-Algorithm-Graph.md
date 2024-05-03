@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Graph(Basic)(Ongoing)
+title: Algorithm-Graph(Basic)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
