@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Graph(Basic)
+title: Algorithm-Graph(Basic)(Ongoing)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
@@ -8,7 +8,7 @@ banner:
   image: /assets/images/post/algorithm-graph/hive.jpg
   opacity: 0.618
   background: "#000"
-  height: "70vh"
+  height: "55vh"
   min_height: "38vh"
   heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
   subheading_style: "color: gold"
@@ -18,17 +18,19 @@ tags: Algorithm Graph
 > NOTE: 内容来自于 [算法4](https://algs4.cs.princeton.edu/home/), 主要记录个人对其中算法的理解。有兴趣或者需要 Java 源码可以直接阅读 [online website graph](https://algs4.cs.princeton.edu/40graphs/). Enjoy it:)
 
 ## 图
+
 图结构是现实世界的一个重要抽象，表达的是顶点间关联关系，广泛存在于多种场景中，比如：
-* 地图：非常直接的图关系，地点是顶点，道路是路径，在抽象时可能使用其他属性，比如汽车行驶花费的时长，作为顶点间的连接路径。
-* 人际关系和社交网络：每个人有多个好友，好友又有好友，可能存在环状的相识链，好友关系一般是无向的关系，社交网络中关注关系则是有向的关系。
+* 地图：非常直接的图关系，地点是顶点，道路是路径。
+* 人际关系和社交网络：每个人有多个好友，好友又有好友，可能存在环状的相识链，好友关系一般是双向关系，而微博等平台的关注关系则是单向关系。
 * 网站超链接：网站作为经典的分布式应用，网站内部通过维护其他网站超链接的方式组成一个超大规模图。
 * 商品调度/贸易关系/软件设计：这些场景都涉及了多个模块之间的交互，自然存在顶点和连接的图抽象。
 
-经典的图抽象可以分成无向图和有向图：
+经典的图分类可以分成无向图和有向图：
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 ![directed-graph](/assets/images/post/algorithm-graph/classic-directed-graph.png)
 
 ## 图的性质
+
 图由顶点和边构成，存在以下性质和相关概念：  
 ![attributes](/assets/images/post/algorithm-graph/anatomy-of-a-graph.png)
 1. 顶点度(degree)/入度(in-degree)/出度(out-degree)：直接连接到该顶点的边个数称为顶点的度，在有向图中，度被进一步区分成入度和出度。
@@ -36,12 +38,13 @@ tags: Algorithm Graph
 3. 联通(connected)/联通分量(connected component): 当每个顶点对其他顶点都存在至少一条路径时我们称图是联通的；联通分量表示图中互相联通的顶点集合；一个图中可能含有多个联通分量。
 4. 无环图(acyclic graph): 一个图中没有环则称为无环图，是一颗树。
 ![acyclic-graph](/assets/images/post/algorithm-graph/acyclic-graph.png)
-5. 生成树(spanning tree)：一个图中连接所有顶点的树称为生成树，比如下图中阴影部分就是各个联通分量的生成树。生成树在研究*图连通性*和*最小连通问题*等问题领域都有重要作用。
+5. 生成树(spanning tree)：一个图中连接所有顶点的树称为生成树，生成树恰好有 V-1 条边，且添加任意一条额外的边都会在树中成环。比如下图中阴影部分就是各个联通分量的生成树，生成树在研究*图连通性*和*最小连通问题*等问题领域都有重要作用。
 ![spanning-tree-forest](/assets/images/post/algorithm-graph/spanning-tree-forest.png)
 6. 森林(forest)和生成树森林(spanning forest): 多个树组成森林，多个生成树组成生成树森林。
 
 ## 图的表示和操作
-图在大的分类上分成无向图和有向图，无向图的边是双向的，右向图的边是单向的。
+
+图在大的分类上分成无向图和有向图，无向图的边是双向的，有向图的边是单向的。
 
 在下面的表示中，为了结构清晰，参考[算法4](https://algs4.cs.princeton.edu/home/)我们会将图的表示分成图行为和图实现，并且分离出图搜索等相关算法。其中：
 * 图行为：提供一个图的基本操作，比如顶点个数，边个数，特点顶点的顶点集等。
@@ -51,6 +54,7 @@ tags: Algorithm Graph
 在描述图和图算法过程中，我们使用面向对象的语言 C++，面向对象的设计方法可以有效实现隐藏相关实现，并且通过 public 接口定义可以明确各组件的交互边界。
 
 ### 图的操作
+
 无向图中所有顶点间连接都是无向的。图行为定义如下：
 ```
 /**
@@ -67,18 +71,13 @@ struct Edge
     int Dest() const;
     double Weight() const;
     bool operator==(const Edge& other) const;
-
-private:
-    //
-    //  implementation...
-    //
 };
 
 /**
- * @struct UndirectedGraph
+ * @struct Graph
  * @brief Represents an undirected graph without edge weights.
  */
-class UndirectedGraph
+class Graph
 {
     //
     // behavior
@@ -94,17 +93,18 @@ public:
     std::pair<const_iterator, const_iterator> Adj(int v) const;
     // Edges() returns a pair of const iterator [begin, end) for the whole edge list
     std::pair<const_iterator, const_iterator> Edges();
-private:
-    //
-    //  implementation
-    //
 };
 ```
 
+### 图的表示
+[TODO]
+
 ### 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
+
 图的深度遍历是指优先访问路径中的 succesor vertice, 相当于多叉树的后序遍历。图的宽度优先遍历是指优先访问当前顶点的所有邻接顶点，再访问二级邻接顶点，类似 Fan-out 的访问模式。
 
 #### 深度优先遍历(DFS)
+
 DFS 可以依赖递归很好得实现顶点回溯访问，同时为了避免重复访问相同的顶点，需要标记数组 $marked$ 标记顶点以被访问过。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/dfs_path.cpp)。
 ```
 void DfsPaths::dfs(const UndirectedGraph& G, int v) {
@@ -122,6 +122,7 @@ void DfsPaths::dfs(const UndirectedGraph& G, int v) {
 DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$。
 
 #### 宽度优先遍历(BFS)
+
 BFS 需要借助队列实现 FIFO 的效果，每访问一个顶点都优先将它的所有未被访问过的邻接顶点入队列。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/bfs_path.cpp)。
 ```
 void BfsPaths::bfs(const UndirectedGraph& G, int v) {
@@ -148,9 +149,11 @@ void BfsPaths::bfs(const UndirectedGraph& G, int v) {
 BFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$。
 
 ### 无向图
+
 无向图的边是无向的，也可以认为是双向的。它是对双向关系的建模，比如电路系统中电线连接的 2 个组件，道路中的双向通道和社交中的朋友关系等等。
 
 #### 环检测
+
 环检测是图的一个常见应用，使用的方法也非常直接 DFS。DFS 本质上是多叉树的回溯访问，在环检测中，我们可以维护当前访问的 path，如果发现邻接顶点已经在 path 中，说明当前 path 成环了。
 
 无向图在环检测实现中要注意排除掉起始顶点，避免误判，比如边<2, 3>，DFS 从 2 访问到 3，3 可能又沿着原始边 <2, 3> 访问到 2，导致误判。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/cycle.hpp)。
@@ -200,6 +203,7 @@ void dfs_recur(const UndirectedGraph &g, int v, int from)
 环检测时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
 #### 连通分量(Connected Component)
+
 无向图另外一个有意思的性质是连通性 connectivity，因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected，我们称为连通分量(Connected Component)，比如下图中就存在 3 个连通分量。
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 
@@ -235,9 +239,11 @@ void ConnectedComponent::dfs_recur(const UndirectedGraph &G, int v)
 检测连通分量其实本质上和对一个连通图运行一次 DFS 没有区别，时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
 ### 有向图
+
 有向图的边是单向的，只能起始顶点到结束顶点，没有反向性质，所以有向图研究的是可达性 reachability，不是 connectivity。它是单向关系的建模，比如社交网络中粉丝对偶像的单向关注，职场环境中下级对上级的单向汇报关系等。
 
 #### 环检测和 DAG(Directed Acyclic Graph)
+
 有向图的环检测和无向图一样，都是通过为当前 path 判断是否出现了 path 回环。无环有向图被称为 DAG(Directed Acyclic Graph), DAG 被广泛应用于任务调度中，因为 DAG 可以获得一个满足所有 precedence contraint 的拓扑排序，使得任务调度可以依序进行。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/dag.hpp)。
 
 ```
@@ -276,12 +282,13 @@ void dfs_recur(const Digraph &G, int v, int from)
     edge_to_[v]=-1;
 }
 ```
-右向图环检测也是类似运行一次 DFS，时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
+有向图环检测也是类似运行一次 DFS，时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
 #### DAG 和拓扑排序(Topological Sort)
+
 DAG 是对无循环依赖的关系的一个抽象，比如多个任务之间互相依赖，需要研究如何安排任务的开始时间以满足所有的依赖关系，我们称这个问题为前置依赖调度(Precedence-constrained scheduling)。
 ![precedence constraints](/assets/images/post/algorithm-graph/precedence_constraints.png)
-更形象的，可以看成如何排列顶点，使得所有的右向边都朝向一个方向，从而满足所有的 precedence constraints，称这种次序为拓扑序(topological sort)。
+更形象的，可以看成如何排列顶点，使得所有的有向边都朝向一个方向，从而满足所有的 precedence constraints，称这种次序为拓扑序(topological sort)。
 ![topological sort](/assets/images/post/algorithm-graph/topological_sort.png)
 
 获取 topological sort 的难点在于无法捕捉一个顶点的所有邻接顶点间的次序关系，起码一次 DFS pre-order 只能获取到父子顶点的次序关系，而无法获得 sibling 顶点的次序关系。举个例子：
@@ -362,6 +369,7 @@ void reverse_order()
 Topological Sort 算法本质上一次 DFS， 它的 Time Complexity 为 $O(E+V)$, Space Complexity 为 $O(V)$。
 
 #### 传递闭包(Transitive Closure)
+
 传递闭包是数学上的概念，指是在集合$X$上求包含关系$R$的最小传递关系。[从关系图的角度来说，通途易懂得讲，就是如果原关系图上有 $i$ 到 $j$ 的路径，则其传递闭包的关系图上就应有从 $i$ 到 $j$ 的边](https://zhuanlan.zhihu.com/p/266356742)。
 
 所以本质上传递闭包讨论的是*有向图中顶点对的可达性 reachability*，任意两个顶点可达，则传递闭包的关系图上就有对应的边。
@@ -427,6 +435,7 @@ for (k = 0; k < V; k++)
 ```
 
 #### 强连通分量(Strongly Connected Component)
+
 类似于无向图中的连通分量，有向图也有强连通分量的概念，因为有向图的边是单向关系，所以有向图的强连通分量一定要成环才能达到互相可达(reachable)的效果。下图展示不同顶点数的强连通分量，单个顶点自己也是一个强连通分量。
 ![strongly_connected_component](/assets/images/post/algorithm-graph/strongly_connected_component.png)
 
@@ -446,7 +455,7 @@ for (k = 0; k < V; k++)
 
 *如果能提前知道顶点间的有向关系？*
 
-前面我们提到过，强连通分量本身可以抽象成一个大型顶点，因为它内部顶点是互相可达的，所以在右向关系上内部任意一个顶点都是一样的。整个图其实就是一个 DAG，*而 DAG 的 topological sort 就是顶点间的 precedence contraints，只不过在这个场景下我们需要的是 reverse topological sort*, 因为我们需要从 successor vertex 开始访问，而不是从 precedence vertex 开始访问。
+前面我们提到过，强连通分量本身可以抽象成一个大型顶点，因为它内部顶点是互相可达的，所以在有向关系上内部任意一个顶点都是一样的。整个图其实就是一个 DAG，*而 DAG 的 topological sort 就是顶点间的 precedence contraints，只不过在这个场景下我们需要的是 reverse topological sort*, 因为我们需要从 successor vertex 开始访问，而不是从 precedence vertex 开始访问。
 
 算法思路上非常清晰，实现上遇到的挑战是: *实际图中有环，不是 DAG，无法计算 DAG*。
 
@@ -526,6 +535,7 @@ void dfs_recur(const Digraph& g, int v) {
 KosarajuSCC 算法的 Time Complexity 为 $O(E+V)$, 其中 reverse graph Time Complexity 为 $O(E+V)$, 计算 topological sort Time Complexity 为 $O(E+V)$, 原图 DFS Time Complexity 为 $O(E+V)$。Space Complexity 为 $O(V)$。
 
 ### 无向图的最小生成树问题(Minimum Spanning Tree)
+
 连通图的生成树是一颗包含所有顶点的树，比如以下黑色边构成的树就是该无向图的一颗生成树。
 ![minimum_spanning_tree](/assets/images/post/algorithm-graph/minimum_spanning_tree.png)
 可以看到生成树有一些非常明显的性质：
@@ -545,6 +555,7 @@ KosarajuSCC 算法的 Time Complexity 为 $O(E+V)$, 其中 reverse graph Time Co
 有向图的最小生成树问题则被称为最小树型图问题 minimum cost arborescence。
 
 #### 割(Cut property)
+
 PrimMST 和 KruskalMST 算法都基于 Cut property。
 
 Cut property 的概念也很容易理解，形象来讲，想象图是一块蛋糕，*以任何一种方式将蛋糕切分成两个部分(不是切成相同的两半哦)，我们称这种划分方式为一种 Cut*。更加严谨的说法是，将图的顶点划分成两个非空不相交的点集的方式，我们称为一种 Cut。连接两个非空不相交的点集的边称为 crossing edge。
@@ -559,6 +570,7 @@ Cut property 的概念也很容易理解，形象来讲，想象图是一块蛋�
 PrimMST 和 KruskalMST 算法的区别在于如何选择最小的 crossing edge。
 
 #### PrimMST 算法
+
 PrimMST 算法选择最小的 crossing edge 的方式非常自然： *从单个顶点的 Cut 开始，每一轮增加一个 tree vertice, 再形成新的 Cut*。
 [TODO] graph
 
@@ -700,6 +712,7 @@ void visit(const UndirectedGraph &g, int v)
 由于优先级队列中只维护 non-tree vertices 到 MST 的最小 edge wegit，所以 Space Complexity 为 $O(V)$, Time Complexity 为 $O(ElogV)$, 因为对优先队列的更新次数是 $O(E)$，每次堆调整是 $O(logV)$。
 
 #### KruskalMST 算法 
+
 KruskalMST 算法在选择最小的 crossing edge 方式上，直接从所有边中持续选择 minimum weight edge，通过检测该边是否属于 crossing edge 来决定它是否属于 MST。该算法的正确性也可以用反证法的方式证明：如果某条边已经是当前所有边中 minimum crossing edge, 则它一定是某个 Cut 中的 minimum crossing edge，它一定属于 MST。
 
 算法实现如下，它需要依赖 Union-Find 算法检测 edge 是否是 crossing edge。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp)。
@@ -719,6 +732,7 @@ KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf
 KruskalMST 算法的 Time Complexity 为 $O(ElogE)$, 其中 Union-Find 能以渐近 $O(1)$ 的方式实现 Connected 和 Union 操作, Space Complexity 为 $O(E)$。
 
 ### 图的最短路径问题(Shortest Path Problem)
+
 图的最短路径问题是图的另一类更加有趣且有意义的问题，一般而言它关注的是单源最短路径(Single Source Shortest Path)，从源顶点到图中其他顶点的路径构成一颗最短路径树(SPT, Shortest Paths Tree)。
 ![shortest paths tree](/assets/images/post/algorithm-graph/spt.png)
 
@@ -743,6 +757,7 @@ KruskalMST 算法的 Time Complexity 为 $O(ElogE)$, 其中 Union-Find 能以渐
 3. 假如存在正负权值，由于源顶点到所有中间顶点 vi 都是简单最短路径，我们可以在每一轮都获取一个中间顶点，则 V-1 轮后也一定能构造出 s -> v1 -> v2 -> ... -> vn -> t，这是 Bellman-Ford 通用算法求解 SP 问题的基础。
 
 #### 非负权值图和 DijkstraSP 算法
+
 为了简化 SP 问题，我们考虑只存在非负权值边，这在很多场景中也是非常合理的，比如求两点间最短路径，求两点间最短耗时等。
 
 正如上面说的，非负权值边带来的一个性质就是，简单路径上中间顶点到源顶点的距离是递增的，这样我们就可以维护和更新所有其他顶点到源顶点的距离，通过每轮选择其中离源顶点 closest vertice A 作为 SPT vertice。因为没有负权值边，所以不可能存在通过其他顶点到 vertice A 的更短路径了，所以 vertice A 一定是 SPT vertice。
@@ -836,6 +851,7 @@ void relax(const Digraph &g, const Edge &e)
 Lazy DijkstraSP 算法 Time Complexity 为 $O(ElogE)$，其中 $O(E)$ 是 relax 的次数，$O(logE)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(E)$。
 
 #### 有向无环图(DAG)和 AcyclicSP 算法
+
 当图中存在负权值时，DijkstraSP 算法就无法使用了，因为最短路径中中间顶点到源顶点的距离不是递增的，所以使用 greedy algorithm 在每轮选择离源顶点 closest vertice 作为 SPT vertice 就无法提供理论上的保证。
 
 这一小节讨论存在负权值边的 DAG 中 Shortest Path 求解。DAG 一个非常重要的特性就是 DAG 可以获取到 topological order，而 topological order 反映的是 vertice 之间入边的依赖关系。按照 topological order 对 vertice 进行 relax, 我们可以依赖链式推导关系知道，current vertice 离源点所有可能的 dist 都被计算了一次，并且 all precedence vertices 也被计算了一次, all pre-precedence vertices 也被计算了一次...。
@@ -901,6 +917,7 @@ AcyclicSP 算法 Time Complexity 为 $O(E+V)$, 其中计算 DAG topological orde
 AcyclicSP 算法 Space Complexity 为 $O(V)$.
 
 #### 一般图和 Bellman-FordSP 算法
+
 以上讨论的都是一些特殊图的最短路径解法，其中 DijkstraSP 算法依赖非负权值，AcyclicSP 算法依赖 DAG，对于存在正负权值且有正负环存在的图，就需要更加通用的 Bellman-Ford 算法。
 
 对于求解最短路径问题，正环的存在不影响结果，所以我们不考虑正环。从源顶点开始如果经过负环，则认为负环上的所有顶点都无法构造最短路径，因为沿着负环总可以构造出更短的路径。
