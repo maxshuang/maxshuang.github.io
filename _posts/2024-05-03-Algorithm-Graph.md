@@ -99,11 +99,11 @@ public:
 ### 图的表示
 [TODO]
 
-### 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
+## 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
 
 图的深度遍历是指优先访问路径中的 succesor vertice, 相当于多叉树的后序遍历。图的宽度优先遍历是指优先访问当前顶点的所有邻接顶点，再访问二级邻接顶点，类似 Fan-out 的访问模式。
 
-#### 深度优先遍历(DFS)
+### 深度优先遍历(DFS)
 
 DFS 可以依赖递归很好得实现顶点回溯访问，同时为了避免重复访问相同的顶点，需要标记数组 $marked$ 标记顶点以被访问过。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/dfs_path.cpp)。
 ```
@@ -121,7 +121,7 @@ void DfsPaths::dfs(const UndirectedGraph& G, int v) {
 
 DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$。
 
-#### 宽度优先遍历(BFS)
+### 宽度优先遍历(BFS)
 
 BFS 需要借助队列实现 FIFO 的效果，每访问一个顶点都优先将它的所有未被访问过的邻接顶点入队列。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/bfs_path.cpp)。
 ```
@@ -148,11 +148,11 @@ void BfsPaths::bfs(const UndirectedGraph& G, int v) {
 ```
 BFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$。
 
-### 无向图
+## 无向图
 
 无向图的边是无向的，也可以认为是双向的。它是对双向关系的建模，比如电路系统中电线连接的 2 个组件，道路中的双向通道和社交中的朋友关系等等。
 
-#### 环检测
+### 环检测
 
 环检测是图的一个常见应用，使用的方法也非常直接 DFS。DFS 本质上是多叉树的回溯访问，在环检测中，我们可以维护当前访问的 path，如果发现邻接顶点已经在 path 中，说明当前 path 成环了。
 
@@ -202,7 +202,7 @@ void dfs_recur(const UndirectedGraph &g, int v, int from)
 
 环检测时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
-#### 连通分量(Connected Component)
+### 连通分量(Connected Component)
 
 无向图另外一个有意思的性质是连通性 connectivity，因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected，我们称为连通分量(Connected Component)，比如下图中就存在 3 个连通分量。
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
@@ -238,11 +238,11 @@ void ConnectedComponent::dfs_recur(const UndirectedGraph &G, int v)
 
 检测连通分量其实本质上和对一个连通图运行一次 DFS 没有区别，时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
-### 有向图
+## 有向图
 
 有向图的边是单向的，只能起始顶点到结束顶点，没有反向性质，所以有向图研究的是可达性 reachability，不是 connectivity。它是单向关系的建模，比如社交网络中粉丝对偶像的单向关注，职场环境中下级对上级的单向汇报关系等。
 
-#### 环检测和 DAG(Directed Acyclic Graph)
+### 环检测和 DAG(Directed Acyclic Graph)
 
 有向图的环检测和无向图一样，都是通过为当前 path 判断是否出现了 path 回环。无环有向图被称为 DAG(Directed Acyclic Graph), DAG 被广泛应用于任务调度中，因为 DAG 可以获得一个满足所有 precedence contraint 的拓扑排序，使得任务调度可以依序进行。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/dag.hpp)。
 
@@ -284,7 +284,7 @@ void dfs_recur(const Digraph &G, int v, int from)
 ```
 有向图环检测也是类似运行一次 DFS，时间 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
-#### DAG 和拓扑排序(Topological Sort)
+### DAG 和拓扑排序(Topological Sort)
 
 DAG 是对无循环依赖的关系的一个抽象，比如多个任务之间互相依赖，需要研究如何安排任务的开始时间以满足所有的依赖关系，我们称这个问题为前置依赖调度(Precedence-constrained scheduling)。
 ![precedence constraints](/assets/images/post/algorithm-graph/precedence_constraints.png)
@@ -368,7 +368,7 @@ void reverse_order()
 
 Topological Sort 算法本质上一次 DFS， 它的 Time Complexity 为 $O(E+V)$, Space Complexity 为 $O(V)$。
 
-#### 传递闭包(Transitive Closure)
+### 传递闭包(Transitive Closure)
 
 传递闭包是数学上的概念，指是在集合$X$上求包含关系$R$的最小传递关系。[从关系图的角度来说，通途易懂得讲，就是如果原关系图上有 $i$ 到 $j$ 的路径，则其传递闭包的关系图上就应有从 $i$ 到 $j$ 的边](https://zhuanlan.zhihu.com/p/266356742)。
 
@@ -434,7 +434,7 @@ for (k = 0; k < V; k++)
 }
 ```
 
-#### 强连通分量(Strongly Connected Component)
+### 强连通分量(Strongly Connected Component)
 
 类似于无向图中的连通分量，有向图也有强连通分量的概念，因为有向图的边是单向关系，所以有向图的强连通分量一定要成环才能达到互相可达(reachable)的效果。下图展示不同顶点数的强连通分量，单个顶点自己也是一个强连通分量。
 ![strongly_connected_component](/assets/images/post/algorithm-graph/strongly_connected_component.png)
@@ -534,7 +534,7 @@ void dfs_recur(const Digraph& g, int v) {
 
 KosarajuSCC 算法的 Time Complexity 为 $O(E+V)$, 其中 reverse graph Time Complexity 为 $O(E+V)$, 计算 topological sort Time Complexity 为 $O(E+V)$, 原图 DFS Time Complexity 为 $O(E+V)$。Space Complexity 为 $O(V)$。
 
-### 无向图的最小生成树问题(Minimum Spanning Tree)
+## 无向图的最小生成树问题(Minimum Spanning Tree)
 
 连通图的生成树是一颗包含所有顶点的树，比如以下黑色边构成的树就是该无向图的一颗生成树。
 ![minimum_spanning_tree](/assets/images/post/algorithm-graph/minimum_spanning_tree.png)
@@ -554,7 +554,7 @@ KosarajuSCC 算法的 Time Complexity 为 $O(E+V)$, 其中 reverse graph Time Co
 
 有向图的最小生成树问题则被称为最小树型图问题 minimum cost arborescence。
 
-#### 割(Cut property)
+### 割(Cut property)
 
 PrimMST 和 KruskalMST 算法都基于 Cut property。
 
@@ -569,17 +569,19 @@ Cut property 的概念也很容易理解，形象来讲，想象图是一块蛋�
 
 PrimMST 和 KruskalMST 算法的区别在于如何选择最小的 crossing edge。
 
-#### PrimMST 算法
+### PrimMST 算法
 
-PrimMST 算法选择最小的 crossing edge 的方式非常自然： *从单个顶点的 Cut 开始，每一轮增加一个 tree vertice, 再形成新的 Cut*。
+PrimMST 算法选择最小的 crossing edge 的方式非常自然： *从单个顶点的 Cut 开始，每一轮增加一个 tree vertice, 再形成新的 Cut*。  
+
 [TODO] graph
 
 单个顶点的 Cut 很简单，起始顶点的所有临接边就是该 Cut 的 crossing edge set，从中选择最小的 crossing edge，它就是*最小生成树的一条有效边，边的另外一个顶点就是另一个 MST vertice*。 这是上一个小节讲的由任意 Cut 性质决定的。
 
 将 new MST vertice 的所有临接边加入到之前的边集合中，就可以形成新的 crossing edge set，然后再选择其中最小的 crossing edge。通过这种每一轮获取一个 new MST vertice，构造 new crossing edge set 的方式，我们可以在获取到 V-1 个 crossing edge 之后就可以确保获得了完整的 MST。
 
-* Lazy PrimMST 算法  
+* Lazy PrimMST 算法    
 上面这种方法就是我们的 Lazy PrimMST 算法，之所以是 lazy 的是因为会*延迟过滤掉一些不是 crossing edge 的边*。举个例子：
+
 ```
 graph edge:
 <src, dst, weight>
@@ -608,6 +610,7 @@ choose: <1, 4, 5.1>  NOT LEGAL !!! Because <1, 4, 5.1> is not crossing edge anym
 ```
 
 Lazy PrimMST 算法实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/lazy_prim_mst.hpp)。
+
 ```
 LazyPrimMST(const UndirectedGraph &g) : marked_(g.V(), false), mst_weight_(0.0)
 {
@@ -644,8 +647,10 @@ void visit(const UndirectedGraph &g, int v)
 
 对于 sparse graph 而言，Lazy PrimMST 算法是可用的，实现上也比较简单。对于 dense graph 而言，比如 E 达到了百万或者千万级别，就需要特殊处理下 non-crossing edge，而这就是 PrimMST 算法。
 
-* PrimMST 算法
+* PrimMST 算法  
+
 由于每次都是选择最小的 crossing-edge 加入 MST，则对于优先队列而言，可以只维护从 non-MST vertices 到 MST vertices 中 weight 最小的边即可，只要它才可能会被选择。举个例子：
+
 ```
 Exist edges:
 <1, 2, 5.1>
@@ -669,6 +674,7 @@ MST edge set:  {<1, 3, 2.1>, <3, 2, 1.0>}
 ```
 
 实现 PrimMST 算法需要依赖 IndexPriorityQueue，它是 PriorityQueue 的变种，支持给每个 key 关联一个外部 index，以便根据外部 index 直接修改 PriorityQueue key，然后再调整保持堆性质。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/prim_mst2.hpp)。
+
 ```
 PrimMST(const UndirectedGraph &g) : edge_to_(g.V()), marked_(g.V(), false),
                                          weight_to_(g.V(), std::numeric_limits<double>::infinity()), mst_weight_(0.0), pq_(g.V())
@@ -711,11 +717,12 @@ void visit(const UndirectedGraph &g, int v)
 
 由于优先级队列中只维护 non-tree vertices 到 MST 的最小 edge wegit，所以 Space Complexity 为 $O(V)$, Time Complexity 为 $O(ElogV)$, 因为对优先队列的更新次数是 $O(E)$，每次堆调整是 $O(logV)$。
 
-#### KruskalMST 算法 
+### KruskalMST 算法 
 
 KruskalMST 算法在选择最小的 crossing edge 方式上，直接从所有边中持续选择 minimum weight edge，通过检测该边是否属于 crossing edge 来决定它是否属于 MST。该算法的正确性也可以用反证法的方式证明：如果某条边已经是当前所有边中 minimum crossing edge, 则它一定是某个 Cut 中的 minimum crossing edge，它一定属于 MST。
 
 算法实现如下，它需要依赖 Union-Find 算法检测 edge 是否是 crossing edge。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp)。
+
 ```
 KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf_(g.V()), mst_weight_(0.0) {
     while(!pq_.empty() && mst_edges_.size() < g.V()-1) {
@@ -731,7 +738,7 @@ KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf
 
 KruskalMST 算法的 Time Complexity 为 $O(ElogE)$, 其中 Union-Find 能以渐近 $O(1)$ 的方式实现 Connected 和 Union 操作, Space Complexity 为 $O(E)$。
 
-### 图的最短路径问题(Shortest Path Problem)
+## 图的最短路径问题(Shortest Path Problem)
 
 图的最短路径问题是图的另一类更加有趣且有意义的问题，一般而言它关注的是单源最短路径(Single Source Shortest Path)，从源顶点到图中其他顶点的路径构成一颗最短路径树(SPT, Shortest Paths Tree)。
 ![shortest paths tree](/assets/images/post/algorithm-graph/spt.png)
@@ -756,13 +763,14 @@ KruskalMST 算法的 Time Complexity 为 $O(ElogE)$, 其中 Union-Find 能以渐
 2. 对于存在负权值的 DAG，如果已知所有顶点的拓扑序，自然能沿着理论上的最短路径更新所有顶点到源顶点的最短距离。
 3. 假如存在正负权值，由于源顶点到所有中间顶点 vi 都是简单最短路径，我们可以在每一轮都获取一个中间顶点，则 V-1 轮后也一定能构造出 s -> v1 -> v2 -> ... -> vn -> t，这是 Bellman-Ford 通用算法求解 SP 问题的基础。
 
-#### 非负权值图和 DijkstraSP 算法
+### 非负权值图和 DijkstraSP 算法
 
 为了简化 SP 问题，我们考虑只存在非负权值边，这在很多场景中也是非常合理的，比如求两点间最短路径，求两点间最短耗时等。
 
 正如上面说的，非负权值边带来的一个性质就是，简单路径上中间顶点到源顶点的距离是递增的，这样我们就可以维护和更新所有其他顶点到源顶点的距离，通过每轮选择其中离源顶点 closest vertice A 作为 SPT vertice。因为没有负权值边，所以不可能存在通过其他顶点到 vertice A 的更短路径了，所以 vertice A 一定是 SPT vertice。
 
 这里涉及到一个非常重要的操作 Relax，它的意思是指每一轮选中 new SPT vertice，就可以通过它的邻接边去更新其他 non-SPT vertice 到源顶点的距离。举个例子：
+
 ```
 Exist edges:
 <1, 2, 5.1>
@@ -776,8 +784,9 @@ source vertice: 1
 
 通过这种 greedy 的方式，我们在选择了 V 个 SPT vertice 就可以构造出 SPT， 并回答从源点 s 到其他顶点的最短距离。
 
-* DijkstraSP 算法
+* DijkstraSP 算法  
 DijkstraSP 算法中，我们同样使用 IndexPriorityQueue 维护所有顶点到源顶点的距离，算法流程和 PrimMST 算法基本一样，不同在于 PrimMST 算法在 IndexPriorityQueue 维护的是顶点到 MST 的最小权重。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/DijkstraSP.hpp)。
+
 ```
 DijkstraSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity()), pq_(g.V())
 {
@@ -811,9 +820,10 @@ void relax(const Edge &e)
     }
 }
 ```
+
 DijkstraSP 算法 Time Complexity 为 $O(ElogV)$，其中 $O(E)$ 是 relax 的次数，$O(logV)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(V)$。
 
-* Lazy DijkstraSP 算法
+* Lazy DijkstraSP 算法  
 类似 Lazy PrimMST 算法，也可以实现 Lazy DijkstraSP 算法，对于 sparse graph 而言，可以通过不断获取 minimum weight edge 的方式 relax vertice，因为 edge weight 都是非负的，所以最后一定可以收敛并获得 SPT。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/lazy_DijkstraSP.hpp)。
 
 ```
@@ -848,14 +858,15 @@ void relax(const Digraph &g, const Edge &e)
     }
 }
 ```
+
 Lazy DijkstraSP 算法 Time Complexity 为 $O(ElogE)$，其中 $O(E)$ 是 relax 的次数，$O(logE)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(E)$。
 
-#### 有向无环图(DAG)和 AcyclicSP 算法
+### 有向无环图(DAG)和 AcyclicSP 算法
 
 当图中存在负权值时，DijkstraSP 算法就无法使用了，因为最短路径中中间顶点到源顶点的距离不是递增的，所以使用 greedy algorithm 在每轮选择离源顶点 closest vertice 作为 SPT vertice 就无法提供理论上的保证。
 
-这一小节讨论存在负权值边的 DAG 中 Shortest Path 求解。DAG 一个非常重要的特性就是 DAG 可以获取到 topological order，而 topological order 反映的是 vertice 之间入边的依赖关系。按照 topological order 对 vertice 进行 relax, 我们可以依赖链式推导关系知道，current vertice 离源点所有可能的 dist 都被计算了一次，并且 all precedence vertices 也被计算了一次, all pre-precedence vertices 也被计算了一次...。
-举个例子：
+这一小节讨论存在负权值边的 DAG 中 Shortest Path 求解。DAG 一个非常重要的特性就是 DAG 可以获取到 topological order，而 topological order 反映的是 vertice 之间入边的依赖关系。按照 topological order 对 vertice 进行 relax, 我们可以依赖链式推导关系知道，current vertice 离源点所有可能的 dist 都被计算了一次，并且 all precedence vertices 也被计算了一次, all pre-precedence vertices 也被计算了一次...。举个例子：
+
 ```
 Exist edges:
 <1, 2, 1>
@@ -872,7 +883,9 @@ If we relax the vertice at {1, 2, 4, 3},
 then we may think that minimum dist from 1 to 4 is 5, 
 because we have no idea then when we can get the minimum dist at a casual relax sequence.
 ```
+
 基于 DAG topological order 实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/acyclicSP.hpp)。
+
 ```
 AcyclicSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
 {
@@ -916,7 +929,7 @@ void relax(const Edge &e)
 AcyclicSP 算法 Time Complexity 为 $O(E+V)$, 其中计算 DAG topological order Time Complexity 为 $O(E+V)$, 而基于 topological order 进行 relax vertice Time Complexity 为 $O(E+V)$。
 AcyclicSP 算法 Space Complexity 为 $O(V)$.
 
-#### 一般图和 Bellman-FordSP 算法
+### 一般图和 Bellman-FordSP 算法
 
 以上讨论的都是一些特殊图的最短路径解法，其中 DijkstraSP 算法依赖非负权值，AcyclicSP 算法依赖 DAG，对于存在正负权值且有正负环存在的图，就需要更加通用的 Bellman-Ford 算法。
 
@@ -940,7 +953,8 @@ s -> v1 -> v2 -> v3 -> t
 
 所以 Bellman-Ford 算法可以认为是一种暴力解法，理论上证明了即使以任意顺序 relax edge 也可以在 V-1 轮后获取 SPT。如果存在源顶点可达的负环，则无法在 V-1 轮后结束，所以可以在 V-1 轮后就检测 SPT 是否存在环，从而检测原始图中负环的存在。
 
-* Lazy Bellman-FordSP 算法
+* Lazy Bellman-FordSP 算法  
+
 上面描述的是 Lazy Bellman-FordSP 算法，直接进行 V-1 轮 relax，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp)。
 
 ```
@@ -1004,7 +1018,8 @@ void findNegativeCycle()
 Lazy Bellman-FordSP 算法的 Time Complexity 为 $O(EV)$，其中需要进行 $O(V)$ 轮，每一轮需要 relax $O(E)$ 条边。空间复杂度为 $O(V)$。
 
 
-* Bellman-FordSP 算法
+* Bellman-FordSP 算法  
+
 更高效率的 Bellman-FordSP 算法只会使用上一轮被 update 过的 vertice 进行 relax，因为只有他们的邻接边才会导致其他顶点到源顶点的距离被更新。
 
 具体实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/Bellman_Ford.hpp)。
