@@ -141,7 +141,7 @@ $edge index
 
 ### 深度优先遍历(DFS)
 
-DFS 可以依赖递归很好得实现顶点回溯访问，同时为了避免重复访问相同的顶点，需要标记数组 $marked$ 标记顶点以被访问过。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/dfs_path.cpp)。
+DFS 可以依赖递归很好得实现顶点回溯访问，同时为了避免重复访问相同的顶点，需要标记数组 marked_ 标记顶点以被访问过。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/dfs_path.cpp)。
 ```
 void DfsPaths::dfs(const UndirectedGraph& G, int v) {
     this->marked_[v] = true;
