@@ -64,8 +64,8 @@ class Graph
     // behavior
     //
 public:
-    // SListIterator is the iterator for adjacency vertices list
-   typedef SListIterator<const Edge, const Edge*, const Edge&> const_iterator;
+    // ListIterator is the iterator for adjacency vertices list
+   typedef ListIterator<const Edge, const Edge*, const Edge&> const_iterator;
     
     // constructor and destructor
     UndirectedGraph(int V);
@@ -89,9 +89,11 @@ public:
 };
 ```
 
-其中需要特殊提下 Iterator, C++ 和 Java 的 iterator 设计理念不同。从泛化的角度看, 我个人认为 Java 的 Iterator<T> 接口是个更加优雅的方式, 因为它只是一个纯行为, 抽象得更好，而 C++ 的 iterator 是和实现相关的。 虽然它隐藏了 iterator 内部的实现, 但是 iterator 本身还是属于某个实现, 比如 std::vector<T>::iterator 和 std::list<T>::iterator。这种实现虽然不是纯行为, 但是它可以给 iterator 设置不同的类型, 从而根据不同的特化做更高效率的实现, 比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。整个 std::algorithm 的设计也是遵循这种设计理念。 
+其中需要特殊提下 ListIterator, C++ 和 Java 的 iterator 设计理念不同。  
+Java 的 Iterator<T> 接口是个是一个纯行为接口，它依赖运行时多态实现行为的动态绑定，很适合做一些行为隔离。  
+而 C++ 的 iterator 和实现相关，虽然它隐藏了 iterator 内部的实现，但是它更关注的是 iterator 的类型，以便根据不同的特化做更高效率的实现, 比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。std::iterator 库是通过 template class 这种 static polymorphism 嵌入到 std::algorithm 库中，而不是类似 Java 的 Iterator<T> 接口型 dynamic polymorphism。
 
-但是在这里，我们其实不关心图的实现，所有的算法都只关心行为，所以设计 Iterator 这种能进一步隐藏图内部 container 的 iterator。后续可能会修改下，不过大致思路还是希望能使用一个纯行为的 iterator。
+为了复用 std::algorithm 算法和封装内部 container 相关实现细节，定义了 ListIterator 和 Iterator。
 
 ```
 // std::algorithm style iterator interface
@@ -113,9 +115,13 @@ public:
     virtual Ptr operator->() const = 0;
     virtual Ref operator*() const = 0;
 };
-```
 
-通过返回一对 Iterator pair，我们可以复用 std::algorithm 的相关算法，比如 std::for_each。
+template <class Tp, class Ptr=Tp*, class Ref=Tp&>
+class ListIterator : public Iterator<Tp, Ptr, Ref>
+{
+    //...
+}
+```
 
 ### 图的表示
 图的表示根据不同的数据场景和访问模式可以有多种表示方式，这就是我们平时在存储中经常提及的 Data Model。
