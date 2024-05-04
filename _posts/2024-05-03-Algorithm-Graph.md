@@ -89,7 +89,7 @@ public:
 };
 ```
 
-其中需要特殊提下 Iterator, C++ 和 Java 的 iterator 设计理念不同。从泛化的角度看, 我个人认为 Java 的 Iterator<T> 接口是个更加优雅的方式, 因为它只是一个纯行为, 抽象得更好。而 C++ 的 iterator 是和实现相关的, 虽然它隐藏了 iterator 内部的实现, 但是 iterator 本身还是属于某个实现, 比如 std::vector<T>::iterator 和 std::list<T>::iterator, 这种实现虽然不是纯行为, 但是它可以给 iterator 设置不同的类型, 从而根据不同的特化做更好效率的实现, 比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。整个 std::algorithm 的设计也是遵循这种设计理念。 
+其中需要特殊提下 Iterator, C++ 和 Java 的 iterator 设计理念不同。从泛化的角度看, 我个人认为 Java 的 Iterator<T> 接口是个更加优雅的方式, 因为它只是一个纯行为, 抽象得更好，而 C++ 的 iterator 是和实现相关的。 虽然它隐藏了 iterator 内部的实现, 但是 iterator 本身还是属于某个实现, 比如 std::vector<T>::iterator 和 std::list<T>::iterator。这种实现虽然不是纯行为, 但是它可以给 iterator 设置不同的类型, 从而根据不同的特化做更高效率的实现, 比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。整个 std::algorithm 的设计也是遵循这种设计理念。 
 
 但是在这里，我们其实不关心图的实现，所有的算法都只关心行为，所以设计 Iterator 这种能进一步隐藏图内部 container 的 iterator。后续可能会修改下，不过大致思路还是希望能使用一个纯行为的 iterator。
 
@@ -119,17 +119,25 @@ public:
 对于 sparse graph，可以使用邻接链表(adjacency-lists)的方式表示，这种方式节省空间。
 ![adjacency-lists](/assets/images/post/algorithm-graph/adjacency_lists.png)
 
-对于固定顶点和边的小图，可以使用数组的方式按序存储。
+对于固定顶点和边的小图，可以使用数组的方式在每个顶点中紧凑存储邻接边，或者按顶点分类在边数组中紧凑存储邻接边。
+[TODO] graph
 
-发挥想象力，还有各种各样的表示方式，比如如果把 vertex 看成 value，存储过程中需要使用索引的方式访问，所以可以是顶点 index 或者是其他属性，此时所有的索引都可以组织 vertices。比如各种树型结构，二叉树，红黑树，AVL树，B/B+/B-树。
+发挥想象力，还有各种各样的表示方式，假如存储过程中需要使用索引的方式组织图中的点和边，则根据访问模式可以使用非常多得索引结构，比如各种树型结构---二叉树，红黑树，AVL树和B/B+/B-树，还是 skip-list 或者 LSM tree。其中 key 的结构可以选择：
+```
+$vertex index
+$vertex index_$adjacent vertex index
+$vertex index_$vertex attribute
+$edge index
+...
+```
 
-设置如果想持久化，可以用 key-value 按序存储到文件，或者 B 族树都可以很好实现。
+如果想支持图持久化，则 B 族树/LSM 树存储 key-value 形式的顶点和边是很好的选择。
 
-再拓展下，类似 OLTP 中使用 row 做为 data model，而 OLAP 使用 column 作为 data model。如果顶点中有很多属性，又需要加速对图中顶点属性的分析，也可以参考 column storage 进行表示。
+再拓展下，类似 OLTP 中使用 row 作为 data model，而 OLAP 使用 column 作为 data model。如果顶点或者边有很多属性，又需要加速对图中顶点/边属性的分析，也可以参考 column storage data model，使用 \$vertex index_\$vertex attribute 或者 \$edge index_\$edge attribute 作为存储 key。
 
 ## 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
 
-图的深度优先遍历是指优先访问路径中的 succesor vertice, 相当于多叉树的后序遍历。图的宽度优先遍历是指优先访问当前顶点的所有邻接顶点，再访问二级邻接顶点，类似 Fan-out 的访问模式。
+图的深度优先遍历是指优先访问路径中的 succesor vertex, 相当于多叉树的后序遍历。图的宽度优先遍历是指优先访问当前顶点的所有邻接顶点，再访问二级邻接顶点，类似 Fan-out 的访问模式。
 
 ### 深度优先遍历(DFS)
 
@@ -147,7 +155,7 @@ void DfsPaths::dfs(const UndirectedGraph& G, int v) {
 }
 ```
 
-DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$，用于存储标记 marked_ 数组和 DFS 遍历树 edge_to_。
+DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$，用于存储标记数组 marked_ 和 DFS 遍历树 edge_to_。
 
 ### 宽度优先遍历(BFS)
 
@@ -232,7 +240,7 @@ void dfs_recur(const UndirectedGraph &g, int v, int from)
 
 ### 连通分量(Connected Component)
 
-无向图另外一个有意思的性质是连通性 connectivity。因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected。我们称为这样的连通的顶点集为连通分量(Connected Component)，比如下图中就存在 3 个连通分量。
+无向图另外一个有意思的性质是连通性 connectivity。因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected，我们称为这样的连通的顶点集为连通分量(Connected Component)。比如下图中就存在 3 个连通分量。
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 
 一次 DFS 就可以访问到一个连通分量中的所有顶点，所以只要对图中逐个顶点进行 DFS 即可知道图中有多少个 Connected Component。当然已经访问过的顶点就不用再运行 DFS 了。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/connected_component.hpp)。
@@ -312,6 +320,7 @@ void dfs_recur(const Digraph &G, int v, int from)
     edge_to_[v]=-1;
 }
 ```
+
 有向图环检测也是类似运行一次 DFS，Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
 ### DAG 和拓扑排序(Topological Sort)
@@ -322,6 +331,9 @@ DAG 是对无循环依赖的关系的一个抽象，比如多个任务之间互�
 ![topological sort](/assets/images/post/algorithm-graph/topological_sort.png)
 
 获取 topological sort 的难点在于无法捕捉一个顶点的所有邻接顶点间的次序关系，起码一次 DFS pre-order 只能获取到父子顶点的次序关系，而无法获得 sibling 顶点的次序关系。举个例子：
+
+[TODO] graph
+
 ```
 <1, 2>
 <1, 3>
@@ -333,12 +345,16 @@ we need topological sort: 1 -> 2 -> 3 -> 4
 ```
 
 为了解决这个问题，捕捉一个顶点的所有邻接顶点间的次序关系，我们可以观察 DFS 的一个很有意思的特性，就是它的 post-order traversal。举个例子：
+
+[TODO] graph
+
 ```
 <A, B>
 <A, C>
 <B, C>
 <C, D>
 ```
+
 对于这样一个 A 的邻接顶点间存在有向关系的图，post-order traversal 输出结果是从后往前输出的，所以:
 1. 如果先访问到 <A, B>，则一定会继续访问 <B, C>， <C, D>，此时有向关系导致顶点的 post-order 输出为 {D, C, B, A};
 2. 如果先访问到 <A, C>, 则一定会继续访问 <C, D>, 再回溯访问 <B, C>， 此时 post-order 输出为 {D, C, B, A};
@@ -425,11 +441,11 @@ bool Reachable(int v, int w) const
 }
 ```
 
-也可以用 $V*V$ 矩阵的方式表示 Transitive Closure，本质上和上述实现是一样的，矩阵中的每一行相当于 DirectDFS 类内部的 marked_[V] 标记数组。 
+也可以用 $V*V$ 矩阵的方式表示 Transitive Closure，本质上和上述实现是一样的，矩阵中的每一行相当于 DirectDFS 类内部的标记数组 marked_[V] 。 
 
 DFS 版本的 Transitive Closure Time Complexity 为 $O(V*(E+V))$, Space Complexity 为 $O(V^{2})$。
 
-以上是 sparse graph 的求解时间复杂度，如果是 dense graph，使用 adjacency matrix $graph[V][V]$ 来表示图，则需要遍历任意两个顶点所有中间顶点的方式确定 reachability，原理上也是暴力遍历，这称为 Floyd Warshall Algorithm。Time Complexity 为 $O(V^{3}))$, Space Complexity 为 $O(V^{2})$。[代码来源](https://www.geeksforgeeks.org/transitive-closure-of-a-graph/)。
+以上是 sparse graph 的求解时间复杂度，如果是 dense graph，使用 adjacency matrix $graph[V][V]$ 来表示图，则需要遍历任意两个顶点所有中间顶点的方式确定 reachability，原理上也是暴力遍历，这称为 Floyd Warshall Algorithm。Time Complexity 为 $O(V^{3})$, Space Complexity 为 $O(V^{2})$。[代码来源](https://www.geeksforgeeks.org/transitive-closure-of-a-graph/)。
 ```
 /* Add all vertices one by one to the
     set of intermediate vertices.
@@ -481,19 +497,23 @@ for (k = 0; k < V; k++)
 2. 强连通分量内部顶点是互相可达的，则一次 DFS 至少可以标记一个强连通分量内的所有顶点;
 3. 反转强连通分量的边方向，仍然是个强连通分量;
 
-为了解决 DFS 遍历过程中*区分强连通分量顶点和非强连通分量顶点*， 一个重要的想法是: **如果能提前知道顶点间的有向关系**，可以先访问强连通分量的 successor vertex，再访问强连通分量顶点，这样就可以通过访问标记区分不同类型的顶点。
+为了解决 DFS 遍历过程中*区分强连通分量顶点和非强连通分量顶点*， 一个重要的想法是:   
+**如果能提前知道顶点间的有向关系**，  
+可以先访问强连通分量的 successor vertex，再访问强连通分量顶点，这样就可以通过访问标记区分不同类型的顶点。
 
 比如上图中，先访问顶点 1，再访问顶点 2，此时从顶点 2 开始的 DFS 会遍历整个强连通分量，但是不会访问到顶点 1, 因为顶点 1 已经被访问过了。也不会访问到顶点 6, 因为整个强连通分量 {0,2,3,4,5} 都对 6 不可达。
 
-*如果能提前知道顶点间的有向关系？*
+**如果能提前知道顶点间的有向关系？**
 
 前面我们提到过，强连通分量本身可以抽象成一个大型顶点，因为它内部顶点是互相可达的，所以在有向关系上内部任意一个顶点都是一样的。整个图其实就是一个 DAG，*而 DAG 的 topological sort 就是顶点间的 precedence contraints，只不过在这个场景下我们需要的是 reverse topological sort*, 因为我们需要从 successor vertex 开始访问，而不是从 precedence vertex 开始访问。
 
-算法思路上非常清晰，实现上遇到的挑战是: *实际图中有环，不是 DAG，无法计算 DAG*。
+算法思路上非常清晰，但是实现上还是遇到了挑战: *实际图中有环，不是 DAG，无法计算 DAG topological sort*。
 
 这里需要清楚一个细节，DAG topological sort 计算本身只是 DFS post-order traversal，任意图都可以通过 DFS 遍历整个图，只是无环 DAG 的 DFS post-order traversal 能表达出 topological sort 的性质。
 
-所以我们仍然可以在含有强连通分量的有向图中运行 DFS post-order traversal，只是它的 reverse post-order 不是 topological sort。比如在上图中运行 DFS post-order traversal，可以出现的 partial post-order 是 {3, 2, 4, 5, 1, 0}, reverse partial post-order 是 {0, 1, 5, 4, 2, 3}，不符合我们需要先访问顶点 1 的要求，原因是在原图上运行 DFS 无法控制访问邻接顶点的次序。
+所以我们仍然可以在含有强连通分量的有向图中运行 DFS post-order traversal，只是它的 reverse post-order 不是 topological sort。比如在上图中运行 DFS post-order traversal，可能出现的 partial post-order 是 {3, 2, 4, 5, 1, 0}, reverse partial post-order 是 {0, 1, 5, 4, 2, 3}，不符合我们需要先访问顶点 1 的要求，原因在于*原图上运行 DFS 无法控制访问邻接顶点的次序*。
+
+[TODO] graph
 
 所以为了避免访问到非强连通分量邻接顶点，需要：
 1. 反转非强连通分量邻接顶点到强连通分量顶点的有向关系，也就是先把图 reverse;
@@ -503,7 +523,7 @@ for (k = 0; k < V; k++)
 
 上面就是 KosarajuSCC 算法，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/strongly_connected_components.hpp)。
 ```
-StrongComponent(const Digraph& g): marked_(g.V(), false), id_(g.V(), 0), count_(0){ 
+KosarajuSCC(const Digraph& g): marked_(g.V(), false), id_(g.V(), 0), count_(0){ 
     std::vector<int> reverse_order(g.V());
     // 1,2: get reverse postorder traversal result of reverse graph 
     dfs_reverse_graph(g, reverse_order);
@@ -572,17 +592,17 @@ KosarajuSCC 算法的 Time Complexity 为 $O(E+V)$, 其中 reverse graph Time Co
 ![minimum_spanning_tree](/assets/images/post/algorithm-graph/minimum_spanning_tree.png)
 可以看到生成树有一些非常明显的性质：
 1. 图所有顶点通过树的边互相连通;
-2. 生成树边数为图顶点数-1(V-1);
+2. 生成树边数为(V-1);
 3. 任意增加一条边都会在生成树中形成一个环;
 
-无向图的生成树研究的是无向图的连通性问题，一个无向图可以有多个生成树，比如选择上图的 <5-1> 边，去掉 <5-7> 边，就可以得到另外一颗生成树。
+无向图的生成树研究的是无向图的连通性问题，一个无向图可以有多个生成树，比如选择上图的 <5-1> 边，去掉 <5-7> 边，就可以得到另外一颗生成树。  
 [TODO] graph 
 
 最小生成树问题则是研究：*带权无向图中边权值总和最小的生成树*。
 
 这类问题在研究图的连通性领域有非常重要的作用，比如在电路领域研究如何使用最少的连线使得所有组件都能连通，比如在基础设施领域研究如何铺设最少的水泥路使得各个村庄之间互相连通。
 
-该问题已经发展出了非常成熟的 PrimMST 和 KruskalMST 算法，可以分别在 Time Complexity $O(ElogV)$ 和 $O(ElogE)$ 下解决该问题，甚至是更加复杂的 Fredman-Tarjan $O(E+VlogV)$ 算法和 Chazelle nearly $O(E)$ 算法。
+该问题已经发展出了非常成熟的 PrimMST 和 KruskalMST 算法，可以分别在 Time Complexity $O(E*logV)$ 和 $O(E*logE)$ 下解决该问题，甚至是更加复杂的 Fredman-Tarjan $O(E+VlogV)$ 算法和 Chazelle nearly $O(E)$ 算法。
 
 有向图的最小生成树问题则被称为最小树型图问题 minimum cost arborescence。
 
@@ -603,16 +623,18 @@ PrimMST 和 KruskalMST 算法的区别在于如何选择最小的 crossing edge�
 
 ### PrimMST 算法
 
-PrimMST 算法选择最小的 crossing edge 的方式非常自然： *从单个顶点的 Cut 开始，每一轮增加一个 tree vertice, 再形成新的 Cut*。  
+PrimMST 算法选择最小的 crossing edge 的方式非常自然： *从单个顶点的 Cut 开始，每一轮增加一个 MST vertex，增加新的 crossing edges，再形成新的 Cut*。  
 
 [TODO] graph
 
-单个顶点的 Cut 很简单，起始顶点的所有临接边就是该 Cut 的 crossing edge set，从中选择最小的 crossing edge，它就是*最小生成树的一条有效边，边的另外一个顶点就是另一个 MST vertice*。 这是上一个小节讲的由任意 Cut 性质决定的。
+单个顶点的 Cut 很简单，起始顶点的所有临接边就是该 Cut 的 crossing edge set，从中选择最小的 crossing edge，它就是*最小生成树的一条有效边，边的另外一个顶点就是另一个 MST vertex*。 这是上一个小节讲的由任意 Cut 性质决定的。
 
-将 new MST vertice 的所有临接边加入到之前的边集合中，就可以形成新的 crossing edge set，然后再选择其中最小的 crossing edge。通过这种每一轮获取一个 new MST vertice，构造 new crossing edge set 的方式，我们可以在获取到 V-1 个 crossing edge 之后就可以确保获得了完整的 MST。
+将 new MST vertex 的所有临接边加入到之前的边集合中，就可以形成新的 crossing edge set，然后再选择其中最小的 crossing edge。通过这种每一轮获取一个 new MST vertex，构造 new crossing edge set 的方式，我们可以在获取 V-1 个 crossing edge 之后就可以确保获得了完整的 MST。
 
 * Lazy PrimMST 算法    
 上面这种方法就是我们的 Lazy PrimMST 算法，之所以是 lazy 的是因为会*延迟过滤掉一些不是 crossing edge 的边*。举个例子：
+
+[TODO] graph
 
 ```
 graph edge:
@@ -621,24 +643,26 @@ graph edge:
 <1, 4, 5.1>
 <2, 4, 1.1>
 
-start MST vertice: 1
+start MST vertex: 1
 
 Round1:
-pre MST vertice set: {1}
+pre MST vertices set: {1}
 crossing edge set: {<1, 2, 2.1>, <1, 4, 5.1>}
 choose: <1, 2, 2.1>
 MST edge set:  {<1, 2, 2.1>}
 
 Round2:
-pre MST vertice set: {1, 2}
+pre MST vertices set: {1, 2}
 crossing edge set: {<1, 4, 5.1>, <2, 4, 1.1>}
 choose: <2, 4, 1.1>
 MST edge set:  {<1, 2, 2.1>, <2, 4, 1.1>}
 
 Round3:
-pre MST vertice set: {1, 2, 4}
+pre MST vertices set: {1, 2, 4}
 crossing edge set: {<1, 4, 5.1>}
-choose: <1, 4, 5.1>  NOT LEGAL !!! Because <1, 4, 5.1> is not crossing edge anymore, its start vertice and end vertice doesn't belong to different disjoint vertice set.
+choose: <1, 4, 5.1>  // NOT LEGAL !!! 
+// Because <1, 4, 5.1> is not crossing edge anymore, 
+// its start vertex and end vertex doesn't belong to different disjoint vertices set.
 ```
 
 Lazy PrimMST 算法实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/lazy_prim_mst.hpp)。
@@ -675,9 +699,9 @@ void visit(const UndirectedGraph &g, int v)
 }
 ```
 
-由于 non-crossing edge 的存在，优先队列中的边个数可能达到 $O(E)$ 级别，所以 Lazy PrimMST 算法的时空复杂度为: Time Complexity: $O(ElogE)$, Space Complexity: $O(E)$。
+由于 non-crossing edge 的存在，优先队列中的边个数可能达到 $O(E)$ 级别，所以 Lazy PrimMST 算法的时空复杂度为: Time Complexity: $O(E*logE)$, Space Complexity: $O(E)$。
 
-对于 sparse graph 而言，Lazy PrimMST 算法是可用的，实现上也比较简单。对于 dense graph 而言，比如 E 达到了百万或者千万级别，就需要特殊处理下 non-crossing edge，而这就是 PrimMST 算法。
+对于 sparse graph 而言，Lazy PrimMST 算法 Time Complexity 是可用的，实现上也比较简单。对于 dense graph 而言，比如 E 达到了百万或者千万级别，就需要特殊处理 non-crossing edge，而这就是 PrimMST 算法。
 
 * PrimMST 算法  
 
@@ -747,11 +771,14 @@ void visit(const UndirectedGraph &g, int v)
 }
 ```
 
-由于优先级队列中只维护 non-tree vertices 到 MST 的最小 edge wegit，所以 Space Complexity 为 $O(V)$, Time Complexity 为 $O(ElogV)$, 因为对优先队列的更新次数是 $O(E)$，每次堆调整是 $O(logV)$。
+由于优先级队列中只维护 non-tree vertices 到 MST vertices 的最小 edge weight，所以 Space Complexity 为 $O(V)$。  
+Time Complexity 为 $O(E*logV)$, 因为对优先队列的更新次数是 $O(E)$，每次堆调整是 $O(logV)$。
 
 ### KruskalMST 算法 
 
-KruskalMST 算法在选择最小的 crossing edge 方式上，直接从所有边中持续选择 minimum weight edge，通过检测该边是否属于 crossing edge 来决定它是否属于 MST。该算法的正确性也可以用反证法的方式证明：如果某条边已经是当前所有边中 minimum crossing edge, 则它一定是某个 Cut 中的 minimum crossing edge，它一定属于 MST。
+KruskalMST 算法在选择最小的 crossing edge 方式上，直接从所有边中持续选择 minimum weight edge，通过检测该边是否属于 crossing edge 来决定它是否属于 MST。检测该边是否属于 crossing edge 的方式就是：该边的两个顶点不能都属于 MST vertices。
+
+该算法的正确性也可以用反证法的方式证明：如果某条边已经是当前所有边中 minimum crossing edge, 则它一定是某个 Cut 中的 minimum crossing edge，它一定属于 MST。
 
 算法实现如下，它需要依赖 Union-Find 算法检测 edge 是否是 crossing edge。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp)。
 
@@ -768,7 +795,8 @@ KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf
 }
 ```
 
-KruskalMST 算法的 Time Complexity 为 $O(ElogE)$, 其中 Union-Find 能以渐近 $O(1)$ 的方式实现 Connected 和 Union 操作, Space Complexity 为 $O(E)$。
+KruskalMST 算法的 Time Complexity 为 $O(E*logE)$，其中 Union-Find 能以渐近 $O(1)$ 的方式实现 Connected 和 Union 操作，每次堆调整 Time Complexity 为 $O(logE)$，调整次数为 $O(E)$。  
+Space Complexity 为 $O(E)$，其中优先队列中存储边个数为 $O(E)$。
 
 ## 图的最短路径问题(Shortest Path Problem)
 
