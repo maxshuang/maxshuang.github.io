@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Graph(Basic)(Ongoing)
+title: Algorithm-Graph(Basic)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
@@ -810,7 +810,7 @@ Space Complexity 为 $O(E)$，其中优先队列中存储边个数为 $O(E)$。
 2. DAG 和 AcyclicSP 算法
 3. 一般图和 Bellman-FordSP 算法
 
-在讲解不同算法之前，需要了解 Shortest Path 问题的一个*非常重要的性质*。对于任何一个从源点 s 到目的点 t 的简单最短路径: s -> v1 -> v2 -> ... -> vn -> t，则从源点 s 到该最短路径的任何中间顶点都是简单最短路径，比如：
+在讲解不同算法之前，需要了解 Shortest Path 问题的一个*非常重要的性质*。对于任何一个从源点 s 到目的点 t 的简单最短路径: s -> v1 -> v2 -> ... -> vn -> t，从源点 s 到该最短路径的任何中间顶点都是简单最短路径，比如：
 1. 源点 s 到中间顶点 v2 也是简单最短路径: s -> v1 -> v2
 2. 源点 s 到中间顶点 vn 也是简单最短路径: s -> v1 -> v2 -> ... -> vn
 
@@ -821,15 +821,15 @@ Space Complexity 为 $O(E)$，其中优先队列中存储边个数为 $O(E)$。
 这个性质重要点在于：
 1. 假如所有的权值都是非负的，则对于一条简单路径而言，它的中间顶点到源顶点的距离是递增的，这是 DijkstraSP 算法可以使用 greedy 算法解决 SP 问题的基础。
 2. 对于存在负权值的 DAG，如果已知所有顶点的拓扑序，自然能沿着理论上的最短路径更新所有顶点到源顶点的最短距离。
-3. 假如存在正负权值，由于源顶点到所有中间顶点 vi 都是简单最短路径，我们可以在每一轮都获取一个中间顶点，则 V-1 轮后也一定能构造出 s -> v1 -> v2 -> ... -> vn -> t，这是 Bellman-Ford 通用算法求解 SP 问题的基础。
+3. 假如存在正负权值，由于源顶点到所有中间顶点 vi 都是简单最短路径，我们可以在每一轮都构造一个中间顶点，则 V-1 轮后也一定能构造出 s -> v1 -> v2 -> ... -> vn -> t，这是 Bellman-Ford 通用算法求解 SP 问题的基础。
 
 ### 非负权值图和 DijkstraSP 算法
 
 为了简化 SP 问题，我们考虑只存在非负权值边，这在很多场景中也是非常合理的，比如求两点间最短路径，求两点间最短耗时等。
 
-正如上面说的，非负权值边带来的一个性质就是，简单路径上中间顶点到源顶点的距离是递增的，这样我们就可以维护和更新所有其他顶点到源顶点的距离，通过每轮选择其中离源顶点 closest vertice A 作为 SPT vertice。因为没有负权值边，所以不可能存在通过其他顶点到 vertice A 的更短路径了，所以 vertice A 一定是 SPT vertice。
+正如上面说的，非负权值边带来的一个性质就是: *简单路径上中间顶点到源顶点的距离是递增的*，通过每轮选择其中离源顶点 closest vertex A 作为 SPT vertex，就可以构造出 SPT。因为没有负权值边，所以不可能存在通过其他顶点到 vertex A 的更短路径了，所以 vertex A 一定是 SPT vertex。
 
-这里涉及到一个非常重要的操作 Relax，它的意思是指每一轮选中 new SPT vertice，就可以通过它的邻接边去更新其他 non-SPT vertice 到源顶点的距离。举个例子：
+这里涉及到一个非常重要的操作 relax，它的意思是指每一轮选中 new SPT vertex，就可以通过它的邻接边去更新其他 non-SPT vertex 到源顶点的距离。举个例子：
 
 ```
 Exist edges:
@@ -842,10 +842,10 @@ source vertice: 1
 >> new dist 1->3->2: 3.1, through vertice 3, we relax the dist from 1 to 2.  
 ```
 
-通过这种 greedy 的方式，我们在选择了 V 个 SPT vertice 就可以构造出 SPT， 并回答从源点 s 到其他顶点的最短距离。
+通过这种 greedy 的方式，我们在选择了 V-1 个 SPT vertex 就可以构造出 SPT， 并回答从源点 s 到其他顶点的最短距离。
 
 * DijkstraSP 算法  
-DijkstraSP 算法中，我们同样使用 IndexPriorityQueue 维护所有顶点到源顶点的距离，算法流程和 PrimMST 算法基本一样，不同在于 PrimMST 算法在 IndexPriorityQueue 维护的是顶点到 MST 的最小权重。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/DijkstraSP.hpp)。
+DijkstraSP 算法中，我们同样使用 IndexPriorityQueue 维护所有顶点到源顶点的最小距离，算法流程和 PrimMST 算法基本一样，不同在于 PrimMST 算法在 IndexPriorityQueue 维护的是所有顶点到 MST vertices 的最小权重。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/DijkstraSP.hpp)。
 
 ```
 DijkstraSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity()), pq_(g.V())
@@ -881,7 +881,7 @@ void relax(const Edge &e)
 }
 ```
 
-DijkstraSP 算法 Time Complexity 为 $O(ElogV)$，其中 $O(E)$ 是 relax 的次数，$O(logV)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(V)$。
+DijkstraSP 算法 Time Complexity 为 $O(E*logV)$，其中 $O(E)$ 是 relax 的次数，$O(logV)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(V)$。
 
 * Lazy DijkstraSP 算法  
 类似 Lazy PrimMST 算法，也可以实现 Lazy DijkstraSP 算法，对于 sparse graph 而言，可以通过不断获取 minimum weight edge 的方式 relax vertice，因为 edge weight 都是非负的，所以最后一定可以收敛并获得 SPT。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/lazy_DijkstraSP.hpp)。
@@ -919,29 +919,29 @@ void relax(const Digraph &g, const Edge &e)
 }
 ```
 
-Lazy DijkstraSP 算法 Time Complexity 为 $O(ElogE)$，其中 $O(E)$ 是 relax 的次数，$O(logE)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(E)$。
+Lazy DijkstraSP 算法 Time Complexity 为 $O(E*logE)$，其中 $O(E)$ 是 relax 的次数，$O(logE)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(E)$。
 
 ### 有向无环图(DAG)和 AcyclicSP 算法
 
-当图中存在负权值时，DijkstraSP 算法就无法使用了，因为最短路径中中间顶点到源顶点的距离不是递增的，所以使用 greedy algorithm 在每轮选择离源顶点 closest vertice 作为 SPT vertice 就无法提供理论上的保证。
+当图中存在负权值时，DijkstraSP 算法就无法使用了，因为最短路径中中间顶点到源顶点的距离不是递增的，所以使用 greedy algorithm 在每轮选择离源顶点 closest vertex 作为 SPT vertex 就无法提供理论上的保证。
 
-这一小节讨论存在负权值边的 DAG 中 Shortest Path 求解。DAG 一个非常重要的特性就是 DAG 可以获取到 topological order，而 topological order 反映的是 vertice 之间入边的依赖关系。按照 topological order 对 vertice 进行 relax, 我们可以依赖链式推导关系知道，current vertice 离源点所有可能的 dist 都被计算了一次，并且 all precedence vertices 也被计算了一次, all pre-precedence vertices 也被计算了一次...。举个例子：
+这一小节讨论存在负权值边的 DAG 中 Shortest Path 求解。DAG 一个非常重要的特性就是 **DAG 可以获取到 topological order**，而 topological order 反映的是 vertex 之间入边的依赖关系。按照 topological order 对 vertex 进行 relax, 我们可以依赖链式推导关系知道，current vertex 离源点所有可能的 dist 都被计算了一次，并且 all precedence vertices 也被计算了一次, all pre-precedence vertices 也被计算了一次...。举个例子：
 
 ```
 Exist edges:
-<1, 2, 1>
-<2, 3, 1>
-<3, 4, 1>
-<1, 4, 5>
+<1, 2, 1.0>
+<2, 3, 1.0>
+<3, 4, 1.0>
+<1, 4, 5.0>
 
 For this graph, its topological order is {1, 2, 3, 4}, 
 so we can get the minimum dist from 1 to 4 is 3, not 5, 
-because we know that after relax vertice3, 
-no other vertice can relax the dist from 1 to 4.
+because we know that after relax vertex 3, 
+no other vertex can relax the dist from 1 to 4.
 
-If we relax the vertice at {1, 2, 4, 3}, 
+If we relax the vertex at order {1, 2, 4, 3}, 
 then we may think that minimum dist from 1 to 4 is 5, 
-because we have no idea then when we can get the minimum dist at a casual relax sequence.
+because we have no idea when we can get the minimum dist at a casual relax sequence.
 ```
 
 基于 DAG topological order 实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/acyclicSP.hpp)。
@@ -996,14 +996,14 @@ AcyclicSP 算法 Space Complexity 为 $O(V)$.
 对于求解最短路径问题，正环的存在不影响结果，所以我们不考虑正环。从源顶点开始如果经过负环，则认为负环上的所有顶点都无法构造最短路径，因为沿着负环总可以构造出更短的路径。
 
 对于一般图而言，我们定义最短路径为：
-1. 如果从源顶点不可达，则不存在最短路径，距离为正无穷大 infinity；
-2. 如果从源顶点可达，但是为负环上的顶点，则不存在最短路径，距离为负无穷大 -infinity；
-3. 如果从源顶点可达，且不是负环上的顶点，则存在简单最短路径；
+1. **如果从源顶点不可达**，则不存在最短路径，距离为正无穷大 infinity；
+2. **如果从源顶点可达**，但是为负环上的顶点，则不存在最短路径，距离为负无穷大 -infinity；
+3. **如果从源顶点可达**，且不是负环上的顶点，则存在简单最短路径；
 
 Bellman-Ford 算法基于这样的直觉：
-*对于不存在源顶点可达负环的有向图，在每轮中，以任意顺序对所有的 edge 进行 relax，至少可以获得 1 个 SPT vertice。进行 V-1 轮后一定可以获得 SPT。*
+*对于不存在源顶点可达负环的有向图，在每轮中，以任意顺序对所有的 edge 进行 relax，至少可以获得 1 个 SPT vertex。进行 V-1 轮后一定可以获得 SPT。*
 
-这是一个第一眼看起来**不太合理**的直觉，所以我们看下一个任意的最短路径，假设是: 
+这是一个第一眼看起来**不太合理**的直觉，所以我们看下假如图中存在一个最短路径: 
 s -> v1 -> v2 -> v3 -> t
 对于 Bellman-Ford 算法而言，如果在 round i 找到了 s -> v1 -> v2，则在 round i+1 以任意顺序 relax edge 都一定可以找到 v3。
 
@@ -1011,11 +1011,11 @@ s -> v1 -> v2 -> v3 -> t
 
 > 即使存在 v2 -> v4 -> v3 这样的路径更短，也可以在 round i+1 找到 v4, 在 round i+2 找到 v3, 当然这和我们一开始的假设已经不一致了，只是为了说明他们的原理都是一样的。
 
-所以 Bellman-Ford 算法可以认为是一种暴力解法，理论上证明了即使以任意顺序 relax edge 也可以在 V-1 轮后获取 SPT。如果存在源顶点可达的负环，则无法在 V-1 轮后结束，所以可以在 V-1 轮后就检测 SPT 是否存在环，从而检测原始图中负环的存在。
+Bellman-Ford 算法可以认为是一种暴力解法，理论上证明了即使以任意顺序 relax edge 也可以在 V-1 轮后获取 SPT。如果存在源顶点可达的负环，则无法在 V-1 轮后结束，所以可以在 V-1 轮后就检测 SPT 是否存在环，从而检测原始图中负环的存在。
 
 * Lazy Bellman-FordSP 算法  
 
-上面描述的是 Lazy Bellman-FordSP 算法，直接进行 V-1 轮 relax，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp)。
+上面描述的是 Lazy Bellman-FordSP 算法，包括源顶点，直接进行 V 轮 relax，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp)。
 
 ```
 LazyBellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
@@ -1075,12 +1075,12 @@ void findNegativeCycle()
 }
 ```
 
-Lazy Bellman-FordSP 算法的 Time Complexity 为 $O(EV)$，其中需要进行 $O(V)$ 轮，每一轮需要 relax $O(E)$ 条边。空间复杂度为 $O(V)$。
+Lazy Bellman-FordSP 算法的 Time Complexity 为 $O(E*V)$，其中需要进行 $O(V)$ 轮，每一轮需要 relax $O(E)$ 条边。空间复杂度为 $O(V)$。
 
 
 * Bellman-FordSP 算法  
 
-更高效率的 Bellman-FordSP 算法只会使用上一轮被 update 过的 vertice 进行 relax，因为只有他们的邻接边才会导致其他顶点到源顶点的距离被更新。
+更高效率的 Bellman-FordSP 算法只会使用上一轮被 update 过的 vertex 进行 relax，因为只有他们的邻接边才会导致其他顶点到源顶点的距离被更新。
 
 具体实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/Bellman_Ford.hpp)。
 
@@ -1120,4 +1120,7 @@ BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(
 }
 ```
 
-Bellman-FordSP 算法一般情况下 Time Complexity 可以达到 $O(E+V)$，其中大概平均每一轮只有 1 个 vertice 会被 relax，总共有 $O(E)$ 条边被 relax。Worst Time Complexity 和 Lazy Bellman-FordSP 算法一样都是 $O(EV)$。空间复杂度为 $O(V)$。
+Bellman-FordSP 算法一般情况下 Time Complexity 可以达到 $O(E+V)$，其中大概平均每一轮只有 1 个 vertice 会被 relax，总共有 $O(E)$ 条边被 relax。Worst Time Complexity 和 Lazy Bellman-FordSP 算法一样都是 $O(E*V)$。空间复杂度为 $O(V)$。
+
+## 总结
+本篇为算法 4 中图相关常见算法的基础，自己实现一遍主要是检验是否能从逻辑上梳理图相关基础知识，并且可以后续做一些实验。[完整代码链接](https://github.com/maxshuang/Demo/tree/main/algorithm/algorithm/graph)。
