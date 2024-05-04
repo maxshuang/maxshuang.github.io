@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Graph(Basic)
+title: Algorithm-Graph(Basic)(Ongoing)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
@@ -64,8 +64,8 @@ class Graph
     // behavior
     //
 public:
-    // Iterator is the iterator for adjacency vertices list
-    typedef Iterator<Edge> const_iterator;
+    // SListIterator is the iterator for adjacency vertices list
+   typedef SListIterator<const Edge, const Edge*, const Edge&> const_iterator;
     
     // constructor and destructor
     UndirectedGraph(int V);
