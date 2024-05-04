@@ -94,17 +94,24 @@ public:
 但是在这里，我们其实不关心图的实现，所有的算法都只关心行为，所以设计 Iterator 这种能进一步隐藏图内部 container 的 iterator。后续可能会修改下，不过大致思路还是希望能使用一个纯行为的 iterator。
 
 ```
-template <class T>
-class Iterator : public std::iterator<std::forward_iterator_tag, T> {
+// std::algorithm style iterator interface
+template <class Tp, class Ptr, class Ref>
+class Iterator : public std::iterator<std::forward_iterator_tag, Tp,
+                                      std::ptrdiff_t, Ptr, Ref>
+{
 public:
+    typedef Iterator<Tp, Ptr, Ref> self_type;
     virtual ~Iterator() {}
 
-    virtual Iterator& operator++() = 0;
-    virtual Iterator operator++(int) = 0;
-    virtual bool operator==(const Iterator& other) const = 0;
-    virtual bool operator!=(const Iterator& other) const = 0;
-    virtual T* operator->() const = 0;
-    virtual T& operator*() const = 0;
+    // [NOTE]: quite hard to override post-fix increment operator because it returns base object directly
+    // So we can use covariant return type technique in C++
+    //virtual self_type operator++(int) = 0;
+
+    virtual self_type &operator++() = 0;    
+    virtual bool operator==(const self_type &) const = 0;
+    virtual bool operator!=(const self_type &) const = 0;
+    virtual Ptr operator->() const = 0;
+    virtual Ref operator*() const = 0;
 };
 ```
 
