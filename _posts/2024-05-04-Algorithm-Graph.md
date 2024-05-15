@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Graph(Basic)(Ongoing)
+title: Algorithm-Graph(Basic)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
@@ -90,10 +90,10 @@ public:
 ```
 
 其中需要特殊提下 ListIterator, C++ 和 Java 的 iterator 设计理念不同。  
-Java 的 Iterator<T> 接口是个是一个纯行为接口，它依赖运行时多态实现行为的动态绑定，很适合做一些行为隔离。  
-而 C++ 的 iterator 和实现相关，虽然它隐藏了 iterator 内部的实现，但是它更关注的是 iterator 的类型，以便根据不同的特化做更高效率的实现, 比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。std::iterator 库是通过 template class 这种 static polymorphism 嵌入到 std::algorithm 库中，而不是类似 Java 的 Iterator<T> 接口型 dynamic polymorphism。
+Java 的 Iterator<T> 接口是个纯行为接口，它依赖运行时多态实现行为的动态绑定，这很适合 Java 的对象引用设计。  
+而 C++ 的 iterator 虽然隐藏了 iterator 内部实现，但是它更关注的是 iterator 的类型，以便根据不同的特化做更高效率的实现。比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。std::iterator 库是通过 template class 这种 static polymorphism 嵌入到 std::algorithm 库中，而不是类似 Java 的 Iterator<T> 接口型 dynamic polymorphism。
 
-为了复用 std::algorithm 算法和封装内部 container 相关实现细节，定义了 ListIterator 和 Iterator。
+为了复用 std::algorithm 算法和封装内部 container 相关实现细节，定义了 ListIterator 和 Iterator。(这部分后续需要重写，不依赖 std::algorithm 会使算法描述更依赖接口行为!!!)
 
 ```
 // std::algorithm style iterator interface
@@ -1136,4 +1136,4 @@ BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(
 Bellman-FordSP 算法一般情况下 Time Complexity 可以达到 $O(E+V)$，其中大概平均每一轮只有 1 个 vertice 会被 relax，总共有 $O(E)$ 条边被 relax。Worst Time Complexity 和 Lazy Bellman-FordSP 算法一样都是 $O(E*V)$。空间复杂度为 $O(V)$。
 
 ## 总结
-本篇为算法 4 中图相关常见算法的基础，自己实现一遍主要是检验是否能从逻辑上梳理图相关基础知识，并且可以后续做一些实验。[完整代码链接](https://github.com/maxshuang/Demo/tree/main/algorithm/algorithm/graph)。
+本篇为算法 4 中图相关常见算法的基础。[完整代码链接](https://github.com/maxshuang/Demo/tree/main/algorithm/algorithm/graph)。
