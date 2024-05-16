@@ -5,7 +5,7 @@ subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
 banner:
-  image: /assets/images/post/algorithm-sort/pexels-bijoy.jpg.jpg
+  image: /assets/images/post/algorithm-sort/pexels-bijoy.jpg
   opacity: 0.618
   background: "#000"
   height: "55vh"
