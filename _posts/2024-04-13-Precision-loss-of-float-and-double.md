@@ -3,7 +3,7 @@ layout: post
 title: Precision Loss of Float
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
-categories: Programming
+categories: Program
 banner:
   image: /assets/images/post/programming-float/pexels-monicore-134058.jpg
   opacity: 0.618
@@ -12,7 +12,7 @@ banner:
   min_height: "38vh"
   heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
   subheading_style: "color: gold"
-tags: Programming
+tags: Program
 ---
 
 ## Background
