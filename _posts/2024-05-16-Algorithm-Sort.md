@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Sort(Basic) 
+title: Algorithm-Sort(Basic)(Ongoing) 
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
@@ -27,7 +27,7 @@ tags: Algorithm
 
 Stability 是排序算法的一个重要性质，它指的是对数据进行排序后，原来数值相同的数据能否保持次序不变。举个例子：  
 5, 4, 3(1), 1, 3(2), 6  
-其中我们通过 3(1) 和 3(2) 区分次序不同的 3。 
+其中我们通过 3(1) 和 3(2) 区分次序不同的 3。
 * 稳定排序后的结果：1, 3(1), 3(2), 4, 5, 6  
 * 不稳定排序可能的结果：1, 3(2), 3(1), 4, 5, 6  
 
@@ -75,7 +75,7 @@ void __inplace_stable_sort(_RandomAccessIter __first,
 }
 ```
 
-这些算法中有些只能达到 average time complexity $O(N*(logN)^2)$ 或者 $O(logN*N^2)$。
+这些算法中有些只能达到 average time complexity $O(N*log^{2}N)$ 或者 $O(N^{2}*logN)$。
 5. 在不同类型的比较算法设计中，可以观察到一些有意思的结构，$O(NlogN)$ 级别的算法总会在每个 round 共享一些结构信息，比如 merge sort 和 quick sort 这种 divide and conquer 算法，每个 round 都在使得整体数据表现得 roughly sorted。对于 heap sort，其核心思路更是不需要一开始就完全有序，只需要 roughly sort 就可以以 $O(1)$ 的时间复杂度获取到最大或者最小值，然后再以 $O(logN)$ 的时间复杂度新增或者删除元素。
 
 ## quick sort 算法实现
@@ -109,7 +109,7 @@ void quick_sort(int* vec, int lf, int rt) {
 **还真有**，在排序数据存在大量相同值的场景下，方式 2/3 划分会出现严重的 data skew。原因是，方式 2/3 可能将值为 vec[cut] 全部放在一边，导致最后的数据分割点 cut 偏离数据中位数点，此时 quick sort 从一个平衡树退化成线性链表，递归轮次变成 $O(N)$，整体的 time complexity 达到了 worst $O(N^2)$。举个例子：  
 3, 4, 3, 3, 1, 3, 5, 3, 3, 3, 4, 3
 
-选择 vec[cut]==3 时，一轮 partition 后结果为：
+选择 vec[cut]==3 时，一轮 partition 后结果为：  
 3, 3, 3, 3, 1, 3, 3, 3, 3[cut], 5, 4, 4  
 
 此时 cut 已经偏离数据中位数点。
@@ -191,8 +191,7 @@ while (vec[i] <= pivot && i < j)
 while (vec[j] >= pivot && j > i)
     j--;
 ```
-在这个实现中，左右指针在移动时为了满足 vec[lf, cut-1] <= vec[cut] <= vec[cut+1, rt]，会在 vec[i] == pivot 或者 vec[j] == pivot 继续移动，它存在的问题是：  
-**无法解决原始数据分布就存在的 data skew**。  
+在这个实现中，左右指针在移动时为了满足 vec[lf, cut-1] <= vec[cut] <= vec[cut+1, rt]，会在 vec[i] == pivot 或者 vec[j] == pivot 继续移动，它存在的问题是：**无法解决原始数据分布就存在的 data skew**。  
 比如：
 3, 3, 1, 3, 3, 3, 2, 3, 3(cut), 4, 5  
 上述实现会导致 3 都分布到 cut 的左区间。
