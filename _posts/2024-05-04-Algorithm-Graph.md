@@ -126,16 +126,35 @@ class ListIterator : public Iterator<Tp, Ptr, Ref>
 ### 图的表示
 图的表示根据不同的数据场景和访问模式可以有多种表示方式，这就是我们平时在存储中经常提及的 Data Model。
 
-对于 dense graph，可以使用邻接矩阵(adjacency-matrix)的方式表示 $graph[V][V]$，这种方式的特点是数据紧凑，data locality 特性好，硬件缓存击中率高。picture from [wiki](https://en.wikipedia.org/wiki/Adjacency_matrix)。
+1. 对于 dense graph，可以使用邻接矩阵(adjacency-matrix)的方式表示 $graph[V][V]$，这种方式的特点是数据紧凑，data locality 特性好，硬件缓存击中率高。picture from [wiki](https://en.wikipedia.org/wiki/Adjacency_matrix)。
 ![adjacency-matrix](/assets/images/post/algorithm-graph/adjacency_matrix.png)
 
-对于 sparse graph，可以使用邻接链表(adjacency-lists)的方式表示，这种方式节省空间。
+2. 对于 sparse graph，可以使用邻接链表(adjacency-lists)的方式表示，这种方式节省空间。
 ![adjacency-lists](/assets/images/post/algorithm-graph/adjacency_lists.png)
 
-对于固定顶点和边的小图，可以使用数组的方式在每个顶点中紧凑存储邻接边，或者按顶点分类在边数组中紧凑存储邻接边。
+3. 对于固定顶点和边的小图，可以使用数组的方式在每个顶点中紧凑存储邻接边，或者按顶点分类在边数组中紧凑存储邻接边。比如：
+* 顶点数组：[{0: [{0, 1}, {0, 2}]}, {1: [{1, 4}, {1, 3}]}, {2: [{2, 4}, {2, 1}]}, ...]
+* 边数组+长度数组：  
+edge array: [{0, 1}, {0, 2}, {1, 4}, {1, 3}, {2, 4}...]  
+length array: [0, 2, 4], 表示不同起点的边在边数组中的起始位置  
 [TODO] graph
 
-发挥想象力，还有各种各样的表示方式，假如存储过程中需要使用索引的方式组织图中的点和边，则根据访问模式可以使用非常多得索引结构，比如各种树型结构---二叉树，红黑树，AVL树和B/B+/B-树，还是 skip-list 或者 LSM tree。其中 key 的结构可以选择：
+4. 链式前向数组(链状数组)表示图，兼具链表的动态增减性，又具备数组的 data locality，也经常用在 acm 解题中。比如定义：
+```
+const int MaxE=1000;
+const int MaxV=100;
+
+struct edge {
+    int to;     // to vertex
+    int next;   // points to net edge
+} edges[MaxE];  // edge arrays
+
+int head[MaxV]; // head for each vertex, points to adjacent edge list
+```
+上面使用数组的方式紧凑定义了边数组，并且使用 head 数组保存所有节点的邻接边链表头。
+[TODO] graph
+
+5. 发挥想象力，还有各种各样的表示方式，假如存储过程中需要使用索引的方式组织图中的点和边，则根据访问模式可以使用非常多得索引结构，比如各种树型结构---二叉树，红黑树，AVL树和B/B+/B-树，还是 skip-list 或者 LSM tree。其中 key 的结构可以选择：
 ```
 $vertex index
 $vertex index_$adjacent vertex index
@@ -146,7 +165,7 @@ $edge index
 
 如果想支持图持久化，则 B 族树/LSM 树存储 key-value 形式的顶点和边是很好的选择。
 
-再拓展下，类似 OLTP 中使用 row 作为 data model，而 OLAP 使用 column 作为 data model。如果顶点或者边有很多属性，又需要加速对图中顶点/边属性的分析，也可以参考 column storage data model，使用 \$vertex index_\$vertex attribute 或者 \$edge index_\$edge attribute 作为存储 key。
+6. 再拓展下，类似 OLTP 中使用 row 作为 data model，而 OLAP 使用 column 作为 data model。如果顶点或者边有很多属性，又需要加速对图中顶点/边属性的分析，也可以参考 column storage data model，使用 \$vertex index_\$vertex attribute 或者 \$edge index_\$edge attribute 作为存储 key。
 
 ## 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
 
