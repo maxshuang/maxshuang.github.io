@@ -222,7 +222,7 @@ float:      1.[0000 0000 0101 1001 0000 110] * 2^(24)
 双精度的 double 和 float 分析流程是一样的，可以参照上面的分析，其标准为([origin](https://www.geeksforgeeks.org/difference-between-float-and-double/))：  
 ![double-standard](/assets/images/post/programming-float/double-standard.png)
 
-在 double 的标准下，由于其 significand 最多可以有 63 bit，所以对于正整数而言，在大概 $10^18$ 之内都不会出现截断的问题。这也是 lua 可以使用 number 类型表示整数和浮点数的原因。(from Programming in Lua)
+在 double 的标准下，由于其 significand 最多可以有 63 bit，所以对于正整数而言，在大概 $10^{18}$ 之内都不会出现截断的问题。这也是 lua 可以使用 number 类型表示整数和浮点数的原因。(from Programming in Lua)
  ![lua-number](/assets/images/post/programming-float/lua-number.png)
 
 ## Conclusion
