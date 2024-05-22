@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algorithm-Sort(Basic)(Ongoing) 
+title: Algorithm-Sort(Basic)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Algorithm
@@ -174,6 +174,8 @@ pivot 选择关系到 quick sort 的性能，*理想上应该选择数据的中�
 1. 对数据做 shuffle，随机选 pivot； 
 2. 采样的方式计算中位数，比如3分位点，5分位点，或者随机采样；
 
+选择完 pivot 后可以交换到数组头或者尾的位置，方便获取 pivot 的值。
+
 ### 如何选择右开闭区间
 *选择右开闭区间都可以，前提是不影响正确性*。问题 Q2 和 Q3 是一起的，需要保持一致保证正确性。比如：
 1. 选择右开区间 [l, r+1)
@@ -198,33 +200,17 @@ while (vec[j] >= pivot && j > i)
 
 正确的实现应该允许在遇到 pivot 值时进行交换，保证左右区间 pivot 值的数量大致相同。
 
-**有意思的地方在于：** 这种正确实现正是 quick sort 算法不具备 stability 性质的原因，*它交换了前后 pivot 值的次序*。*而错误的实现却是稳定的*。
+**有意思的地方在于：** 这种正确实现正是 quick sort 算法不具备 stability 性质的原因，*它交换了前后 pivot 值的次序*。*而上面错误的实现却是稳定的*。
 
 正确的实现：
 ```
-while (vec[i] < pivot && i < j) i++;
-while (vec[j] > pivot && j > i) j--;
+while (vec[i] < pivot && ...) i++;
+while (vec[j] > pivot && ...) j--;
 ```
 
-### 循环退出的场景
-按照上面的改进，我们继续讨论循环退出的场景。当 while 循环退出时，我们使用右闭区间 [l, r] 讨论，此时可能存在 4 种场景：
-1. i>j 发生在数组中间
-2. i==j && vec[i]==pivot
-2. i 越过数组右边界
-3. j 越过数组左边界
+### 改进的实现
 
-* 场景 1
-由于发生在数组中间，所以 vec[j] 一定满足 <= pivot，否则 i 不可能越过 j，但是 vec[i] 的取值就不确定了。所以我们可以交换 vec[j] 和原始 pivot 所在的位置，将 j 作为一个 cut。
-* 场景 2
-此时循环也结束了，并且使用 j 作为 cut 也不影响正确性。
-* 场景 3
-发生在整个数组都 <= pivot，导致 i 越过数组右边界，此时 vec[j] 一定满足 <= pivot，也可以作为一个 cut。
-* 场景 4
-不可能，因为在上面的实现中，选择 int pivot = vec[l]，在整个数组都 >= pivot 的场景下 j==0，也满足 vec[j] 一定满足 <= pivot，可以选择 j 作为 cut。但是这个要看实现，错误的实现下面可能会出现 j 越过数组左边界。
-
-所有场景都可以选择 j 作为 cut。
-
-按照上面的改进，修改后的代码：
+按照上面的改进，我们使用右闭区间，修改后的代码：
 
 ```
 // check range: [l, r]
@@ -234,10 +220,13 @@ int partition_better(int *vec, int l, int r)
     int i = l+1, j = r;
     while (i <= j)
     {
-        while (vec[i] < pivot && i < j) i++;
-        while (vec[j] > pivot && j > i) j--;
+        while (vec[i] < pivot && i < r) i++;
+        while (vec[j] > pivot && j > l) j--;
         if (i < j) exchange(vec, i++, j--);
-        // avoid dead loop here
+        // three situations here:
+        // 1. i>j
+        // 2. i==j && vec[i]==pivot, need break the loop
+        // 3. i==j && vec[i]!=pivot, next term will meet i>j
         else if(i==j && vec[i]==pivot) break;
     }
     
@@ -248,12 +237,20 @@ int partition_better(int *vec, int l, int r)
 }
 ```
 
-即使这个实现，也不敢保证它完全没有 corner case，整个实现容易出错，过程也很痛苦。
+这个看起来正确的实现还是有 bug，然后考虑这样一个数据：  
+5, 4, 3, 2, 1  
+按照上面的逻辑，while (vec[i] < pivot && i < r) i++; 会触发 i==r 的条件导致 while 退出，但是其他的所有分支都无法推进逻辑，导致出现 dead loop。
+
+我们可以看到，整个实现过程中即使我们注意到了一些细节问题，逻辑还是非常容易出错，corner cases 也很多。
+
+那有没有比较好的算法实现原则，既可以有效验证算法正确性，又可以指导实现？
+
+***循环不变式**。
 
 ### 循环不变式实现
-其实一个比较好的做法是利用[算法导论](https://edutechlearners.com/download/Introduction_to_algorithms-3rd%20Edition.pdf)中的循环不变性质(loop invariant)保证算法正确性，简单说就是保证算法初始状态符合一个算法性质的约定，每次循环都保证约定成立，这样算法递推最后就是正确的。
+一个比较好的做法是利用[算法导论](https://edutechlearners.com/download/Introduction_to_algorithms-3rd%20Edition.pdf)中的循环不变性质(loop invariant)保证算法正确性，简单说就是保证算法初始状态符合一个算法性质的约定，每次循环都保证约定成立，这样算法递推到循环结束自然也满足约定。
 
-对于 quick sort algorithm，我们构造一个可行的 invariant A，比如：
+对于 quick sort algorithm，由于需要满足 vec[i] >= pivot 停止，vec[j]<= pivot 停止，并且我们想要使用右开区间，所以我们构造一个可行的 invariant A，比如：
 
 ```
 check range: [l, r]
@@ -262,55 +259,55 @@ keep the following invariant for any situation:
 2. [i, j) not sure
 3. [j, r] >= pivot
 ```
-这里的不变式不是任意可行的，比如我们考虑下面的不变式 invariant B：
-```
-1. [l, i] <= pivot
-2. (i, j) not sure
-3. [j, r] >= pivot
-```
-invariant B 的实现过程中，可能出现 i > j，此时 vec[i] 无法保证 <= pivot，所以无法保证 [l, i] <= pivot 成立。
 
 根据这个不变式 invariant A，我们实现 partition:
+
 ```
 // check range: [l, r]
 int partition(int *vec, int l, int r)
 {
     // select a proper pivot，then exchange pivot to pos `l`
     int pivot = select(vec, l, r);
-    int i = l, j = r + 1;
+       
     // initial state: 
     // meet: [l, l) <= pivot, no data here
     // meet: [l, r+1) not sure, original unsorted data
     // meet: [r+1, r] >= pivot, no data here
+    int i = l, j = r + 1;
 
-    while (true)
+    // open end, use i<j
+    while (i<j)
     {
-        // after this while, vec[i] >= pivot
+        // after this while, [l, i) <= pivot
         while (vec[++i] < pivot) if(i==r) break;
 
-        // after this while, vec[j] <= pivot
+        // after this while, (j, r] >= pivot
         while (vec[--j] > pivot) if(j==l) break;
-        
-        // it means:
-        // 1. i==j && vec[i]==vec[j]==pivot here
-        // 2. i>j && (vec[j] <= pivot || vec[i] >= pivot)
-        // meet: [l, i) <= pivot
-        // !!!! violate: [j, r] >= pivot !!!
-        // meet: (i, j) not sure, because no data
-        if (i >= j) break;        
-        
+                
         // after this exchange,
         // meet: [l, i) <= pivot
-        // meet: [j, r] >= pivot
         // meet: [i, j) not sure
-        exchange(vec, i, j);
+        // meet: [j, r] >= pivot
+        if(i<j)
+            exchange(vec, i, j);
     }
+
+    // After while (i<j) exits:
+    // 1. i==j, vec[i]==vec[j]==pivot
+    // 2. i==j==r, vec[i]=vec[j]<pivot
+    // !!!! violate: [j, r] >= pivot !!!
+    // 3. i>j && (vec[j] <= pivot || vec[i] >= pivot)
+    // meet: [l, i) <= pivot
+    // !!!! violate: [j, r] >= pivot !!!
+    // meet: (i, j) not sure, because no data
 
     // fix the above violation to meet: [j, r] >= pivot
     exchange(vec, l, j);
     return j;
 }
 ```
+
+在这个实现中，我们可以看到，当出现 i\<j 的场景时，可能出现 vec[j] \<= pivot 或者 vec[i] \>= pivot， 为了不违反 [j, r] >= pivot 的不变式，需要用 pivot 进行修正。
 
 ### 3-way quick sort
 
@@ -355,11 +352,11 @@ void quick_3way_range(int *vec, int l, int r)
 ```
 
 ## 应用中的 sort
-Python 标准库中的 sort 采用 [TimSort](https://bugs.python.org/file4451/timsort.txt) 算法，它的 best time complexity O(N)，average time complexity 和 worst time complexity 都可以满足 O(NlogN)。
+Python 标准库中的 sort 采用 [TimSort](https://bugs.python.org/file4451/timsort.txt) 算法，它的 best time complexity $O(N)$，average time complexity 和 worst time complexity 都可以满足 $O(NlogN)$。
 
-C++ 标准库中的 std::sort 使用 [Introsort](https://www.geeksforgeeks.org/introsort-or-introspective-sort/)，这是一个结合了 quick sort, heap sort 和 insertion sort 的方案，保证算法的 worst time complexity 满足 O(NlogN)。其算法流程上大致为：
+C++ 标准库中的 std::sort 使用 [Introsort](https://www.geeksforgeeks.org/introsort-or-introspective-sort/)，这是一个结合了 quick sort, heap sort 和 insertion sort 的方案，保证算法的 worst time complexity 满足 $O(NlogN)$。其算法流程上大致为：
 1. quick sort 不断划分 partition。
-2. 当 quick sort 递归深度过深时，采用 heap sort，前面我们说过 heap sort 也是 inplace 的算法，并且 average time complexity 和 worst time complexity 都是 O(NlogN) 级别的，只是常数系数会相对大。
+2. 当 quick sort 递归深度过深时，采用 heap sort，前面我们说过 heap sort 也是 inplace 的算法，并且 average time complexity 和 worst time complexity 都是 $O(NlogN)$ 级别的，只是常数系数会相对大。
 3. 当整个数组 nearly sorted 之后，采用 insertion sort 排序。
 
 SGI STL 中实现如下：
