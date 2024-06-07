@@ -14,11 +14,11 @@ O(N)
 
 但是对于交替操作，就需要存储更多额外的信息以便复用历史结果，降低时间复杂度。
 
-解决这个问题的 insight 的 2 个：
+解决这个问题的 intuition 的 2 个：
 1. 区间加值或者区间减值如果要应用在区间求和上要转换成一个 lazytag，延迟操作。 
 2. 为了实现快速的区间求和，可以使用一些已经保存过的区间和，然后再上面应用 lazy tag, 就可以复用之前的计算结果。
 
-将这些 insights 转变成 Block Decomposition 算法，就是预先对数组进行分块，然后维护分块的区间求和。当求解任意区间求和时，它可以转变成多个分块区间和的加法操作。
+将这些 intuition 转变成 Block Decomposition 算法，就是预先对数组进行分块，然后维护分块的区间求和。当求解任意区间求和时，它可以转变成多个分块区间和的加法操作。
 
 ![alt text](image-1.png)
 
@@ -162,26 +162,33 @@ int sum(std::vector<int>& array, const Op& op) {
 
 树状数组是另一类通过增加空间维护额外信息提高算法时间复杂度的数据结构，不同于分块，它适用的场景是 **单点修改** 和 **区间查询** 。
 
-我觉得它最大的特点是: 算法的 insight 很抽象，但是实现超级简单。
+我觉得它最大的特点是: 算法的 intuition 很抽象，但是实现超级简单。
 
 我们违反正常的说明顺序，先看下 BIT 的实现。
 
 ```
 #include <iostream>
 #include <vector>
+#include "catch.hpp"
 
 using namespace std;
 
 class BIT {
 private:
+    // start from 1
     vector<int> tree;
     int n;
+
+    int lowBit(int x) {
+        return x & -x;
+    }
 
     int getSum(int index) {
         int sum = 0;
         while (index > 0) {
             sum += tree[index];
-            index -= index & (-index);
+            // move to its children node
+            index -= lowBit(index);
         }
         return sum;
     }
@@ -189,7 +196,8 @@ private:
     void updateTree(int index, int val) {
         while (index <= n) {
             tree[index] += val;
-            index += index & (-index);
+            // move to its father node
+            index += lowBit(index);
         }
     }
 
@@ -215,12 +223,13 @@ public:
 
 我相信你的内心肯定非常疑惑，就这？ 核心代码只有不到 10 行，却可以实现一个 $O(logN)$ 时间复杂度，$O(N)$空间复杂度的 range query。再看看上面的 block decomposition, 空间复杂度为 $O(\sqrt{N})$，但是核心实现和边界处理要远多于 BIT。
 
-BIT 的设计 insight 我始终觉得非常难以理解，可以看到的一个点是它使用了前缀和来简化区间操作
+BIT 的设计 intuition 我始终觉得非常难以理解，可以看到的一个点是它使用了前缀和来简化区间操作
+
+![alt text](image-2.png)
 
 https://cs.stackexchange.com/questions/10538/bit-what-is-the-intuition-behind-a-binary-indexed-tree-and-how-was-it-thought-a
 
-
-
+非常抽象的数据结构，不知道为什么要这样设计？？？
 
 普通树状数组维护的信息及运算要满足 结合律 且 可差分，如加法（和）、乘法（积）、异或等。
 
@@ -234,3 +243,4 @@ https://cs.stackexchange.com/questions/10538/bit-what-is-the-intuition-behind-a-
 事实上，树状数组能解决的问题是线段树能解决的问题的子集：树状数组能做的，线段树一定能做；线段树能做的，树状数组不一定可以。然而，树状数组的代码要远比线段树短，时间效率常数也更小，因此仍有学习价值。
 
 有时，在差分数组和辅助数组的帮助下，树状数组还可解决更强的 区间加单点值 和 区间加区间和 问题。
+
