@@ -159,11 +159,11 @@ int sum(std::vector<int>& array, const Op& op) {
 除了区间和，分块算法使用于几乎所有的区间操作，比如查找区间中大于某个值的个数，查找区间中满足某个条件的值个数等等。
 
 ## Segment Tree 线段树
-Segment tree 在设计上的 intuition 非常直观，它本质上就是*分块* + *信息复用*。
+Segment tree 在设计上的 intuition 非常直观，它本质上就是*分块* + *覆盖节点*。
 
 和我们最开始分块思想非常类似，但是为了避免 $O(\sqrt{N})$ 级别的分块更新，它需要使用更多的内存信息做跨块之间的覆盖，这样就可以更快的定位到变更区间。
 
-所以你可以看到 segment tree 在分块和信息复用上做的非常彻底，将所有的区间不断二分直到只剩一个元素(叶子节点)，所有的非叶子节点都是叶子节点的分层信息复用。
+所以你可以看到 segment tree 在分块和覆盖节点上做的非常彻底，将所有的区间不断二分直到只剩一个元素(叶子节点)，所有的非叶子节点都是叶子节点的分层覆盖区间。
 
 线段树的形态的例子：
 ![alt text](image-3.png)
@@ -212,7 +212,7 @@ struct SegmentTree {
 };
 ```
 
-动态 new 的方式：
+动态分配的方式，空间复杂度为 $O(2N)$：
 ```
 #include <vector>
 
@@ -302,9 +302,9 @@ void updateRangeRecur(int l, int r, int v, int s, int t, int p) {
         nodes[p].lazyTag=0;
     }
 
-    // |___________|
-    // s           t
-    //    |____|
+    // |_____|______|
+    // s     m      t
+    //    |__|__|
     //    l    r
     if(l<=m) updateRangeRecur(l, r, v, s, m, p);
     if(m<=r) updateRangeRecur(l, r, v, m+1, t, p);
@@ -383,20 +383,33 @@ int getsum(int l, int r, int s, int t, int p) {
 
 ## Fenwick Tree or BIT(Binary Index Tree)
 
-树状数组是另一个通过增加额外的覆盖节点提高算法时间复杂度的数据结构，不同于树状数组，它适用的场景是 **单点修改** 和 **区间查询** 。
+树状数组是另一个通过增加额外的覆盖区间提高算法时间复杂度的数据结构，不同于树状数组，它适用的场景是 **单点修改** 和 **区间查询** 。
 
 我觉得它最大的特点是: 算法的 intuition 很抽象，但是实现超级简单。
 
-到现在为止，我都不理解为什么它会被选择构造成这样子。虽然有一些比较好的[解释](https://cs.stackexchange.com/questions/10538/bit-what-is-the-intuition-behind-a-binary-indexed-tree-and-how-was-it-thought-a)，但我还是很难理解它为什么能够用类似 segment tree 的数据结构构造出 $O(N)$ 空间复杂度且时间复杂度为 $O(logN)$ 的新数据结构。
+不同于 segment tree 对区间不断二分的做法，BIT 本质上是一颗前缀树，通过特殊的规则定义前缀节点对应的区间范围。
 
-留做一个 call back 好了，以后有新的想法再回来补充 :)。
+只是到现在为止，我都不理解为什么它会被选择构造成这样的前缀树，虽然有一些比较好的[解释](https://cs.stackexchange.com/questions/10538/bit-what-is-the-intuition-behind-a-binary-indexed-tree-and-how-was-it-thought-a)。这里有种信息论里计算最小信息量的味道？
+
+留做一个 callback 好了，以后有新的想法再回来补充 :)。
+
+这是 BIT 形象化的示意图，我们可以看到 c[1] 到 c[8] 就组成了一颗 BIT，其中每个节点覆盖了源数组中一个区间，比如可以表示区间和、区间乘和异或等。
+![alt text](image-2.png)
+
+事实上，BIT 只能用来解决满足结合律和可差分的问题：
+1. 结合律: $(x \circ y) \circ z = x \circ (y \circ z)$
+因为 BIT 的 query 会要求从后往前做组合计算，所以需要满足结合律。
+2. 可差分：具有逆运算的运算，即已知 $x \circ y$ 和 $x$ 可以求出 $y$
+因为 BIT 的 query 需要做前缀和的差分计算区间值，比如区间和 [l,r] 需要差分成 [1, l]-[1, r-1]，像 gcd 和 max 就不可差分。
+
+对 BIT 和 segment tree 总结得比较精炼的是：
+*[事实上，树状数组能解决的问题是线段树能解决的问题的子集：树状数组能做的，线段树一定能做；线段树能做的，树状数组不一定可以。然而，树状数组的代码要远比线段树短，时间效率常数也更小，因此仍有学习价值。](https://oi-wiki.org/ds/fenwick/#%E5%8C%BA%E9%97%B4%E5%8A%A0%E5%8C%BA%E9%97%B4%E5%92%8C)*
 
 我们违反正常的说明顺序，先看下 BIT 的实现。
 
 ```
 #include <iostream>
 #include <vector>
-#include "catch.hpp"
 
 using namespace std;
 
@@ -438,35 +451,99 @@ public:
     }
 
     // for 1 to i
-    int query(int i) {
+    int querySum(int i) {
         return getSum(i);
     }
 
-    int queryRange(int l, int r) {
+    int querySumRange(int l, int r) {
         return getSum(r) - getSum(l - 1);
     }
 };
 ```
 
-我相信你的内心肯定非常疑惑，就这？ 核心代码只有不到 10 行，却可以实现一个 $O(logN)$ 时间复杂度，$O(N)$空间复杂度的 range query。再看看上面的 block decomposition, 空间复杂度为 $O(\sqrt{N})$，但是核心实现和边界处理要远多于 BIT。
+我相信你的内心肯定非常疑惑，就这？ 核心代码只有不到 10 行，却可以实现一个 $O(logN)$ 时间复杂度，$O(N)$ 空间复杂度的 range query。再看看上面的 block decomposition 和 segment tree, 空间复杂度为 $O(\sqrt{N})$ 和 $O(2N)$，但是核心实现和边界处理要远多于 BIT。
 
-BIT 的设计 intuition 我始终觉得非常难以理解，可以看到的一个点是它使用了前缀和来简化区间操作
+BIT 真是精巧。
 
-![alt text](image-2.png)
+### 原理
+从 BIT 的形象化实例上，我们可以看到 BIT 使用了和源数组一样大小的数组表达 BIT，对于 BIT 中的每个节点，它可能覆盖源数组的一个区间，这个类似 segment tree 的覆盖节点。
 
-https://cs.stackexchange.com/questions/10538/bit-what-is-the-intuition-behind-a-binary-indexed-tree-and-how-was-it-thought-a
+*如何确定 BIT 中节点对应的源数组区间？*   
+根据 index 的 lowbit 对应的值，这也是为什么叫 binary index 的原因。
 
-非常抽象的数据结构，不知道为什么要这样设计？？？
+举个例子: 
+1. BIT[x=5] 的元素，其二进制表示为: 101，lowbit 对应的值为 (b)1，表示从 5 开始，个数为 1 的区间，也就是 [5, 5];
+2. BIT[x=6] 的元素，其二进制表示为: 110，lowbit 对应的值为 (b)10, 表示从 6 开始，个数为 2 的区间，也就是 [5, 6];
+2. BIT[x=12] 的元素，其二进制表示为: 1100，lowbit 对应的值为 (b)100, 表示从 12 开始，个数为 4 的区间，也就是 [9, 12]。
 
-普通树状数组维护的信息及运算要满足 结合律 且 可差分，如加法（和）、乘法（积）、异或等。
+所以 BIT[x] 表示的区间为: [x-lowbit(x)+1, x]。
 
-结合律：$(x \circ y) \circ z = x \circ (y \circ z)$，其中 $\circ$ 是一个二元运算符。
-可差分：具有逆运算的运算，即已知 $x \circ y$ 和 $x$ 可以求出 $y$。
-需要注意的是：
+lowbit(x) 的快速实现方式：
+```
+/// It works because the -x is two's implementation.
+/// For example: take x=6, 6=0110, so -6=1001(reversed)+1=1010
+//               => 6 & -6 = 0110 & 1010 = 0010
 
-模意义下的乘法若要可差分，需保证每个数都存在逆元（模数为质数时一定存在）；
-例如 $\gcd$，$\max$ 这些信息不可差分，所以不能用普通树状数组处理。
+lowbit(x) = x & -x
+```
 
-事实上，树状数组能解决的问题是线段树能解决的问题的子集：树状数组能做的，线段树一定能做；线段树能做的，树状数组不一定可以。然而，树状数组的代码要远比线段树短，时间效率常数也更小，因此仍有学习价值。
+为了使用 lowbit(x) 的性质，BIT 的树节点索引从 1 开始， 索引 0 作为边界 safeguard 值。
 
-有时，在差分数组和辅助数组的帮助下，树状数组还可解决更强的 区间加单点值 和 区间加区间和 问题。
+### BIT 创建
+BIT 的组织形式形象表明，对于每个节点，更新完自身值后，将结果推送到其父节点，就可以逐步初始化所有的节点，其时间复杂度为 $O(N)$。
+```
+// Time Complexity: O(N)
+void init(const std::vector<int>& arr) {
+    for(int i=1; i<=n; ++i) {
+        tree[i]+=arr[i-1];
+        // update its father because it's single direction
+        int fa = i+lowBit(i);
+        if(fa<=n) tree[fa]+=tree[i];
+    }
+}
+```
+
+### 单点变更
+由于 BIT[x] 中必定包含索引为 x 的源数组值，因为区间的计算是以 x 为起点的。所以对于单点更新，可以直接更新 BIT[x]。此外，由于覆盖区间的存在，需要更新该节点所有父节点的值，因为他们的区间是包含关系。
+
+父节点的索引可以使用: fa(x)=x+lowbit(x)。
+```
+// Time Complexity: O(logN)
+void updateTree(int index, int val) {
+    while (index <= n) {
+        tree[index] += val;
+        // move to its father node
+        index += lowBit(index);
+    }
+}
+```
+
+### 区间查询
+在 segment tree 中，对于区间查询，我们会用中值点划分左右两个子区间进行查询。但是 BIT 树本质上是一颗前缀树，所以我们在进行区间查询的时候需要依赖前缀树的查询方式。
+
+将 queryRange(int l, int r) 转变成 query(l)-query(r-1) => [1, l]-[1, r-1]。
+
+对于 query(l)，由于 BIT[l] 本身只能根据 lowbit(l) 确定区间长度，所以 BIT[l] 覆盖的不一定是 [1, l]，而是 [l-lowbit(l)+1, l]。为了获取 [1, l] 区间的值，需要跳到上一个区间去，获取它覆盖的区间值，而上一个区间刚好就是 l-lowbit(l)。
+
+通过一直往前跳，直到遇到 0，则我们获取了整个区间 [1, l] 的值。
+
+```
+int getSum(int index) {
+    int sum = 0;
+    while (index > 0) {
+        sum += tree[index];
+        // move to its children node
+        index -= lowBit(index);
+    }
+    return sum;
+}
+
+// for 1 to i
+int querySum(int i) {
+    return getSum(i);
+}
+
+int querySumRange(int l, int r) {
+    return getSum(r) - getSum(l - 1);
+}
+```
