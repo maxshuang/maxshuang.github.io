@@ -6,7 +6,7 @@ O(N)
 
 
 ## Block Decomposition
-![alt text](image.png)
+![range query problem](/assets/images/post/algorithm-rangequery/range-query-problem.png)
 
 对于这种区间求和问题，最直观且最正常的想法就是遍历。将操作独立开来看:  
 1. 对于区间变更问题，使用差分数组的形式可以将 $O(N)$ 问题转换成 $O(1)$ 问题
@@ -20,7 +20,7 @@ O(N)
 
 将这些 intuition 转变成 Block Decomposition 算法，就是预先对数组进行分块，然后维护分块的区间求和。当求解任意区间求和时，它可以转变成多个分块区间和的加法操作。
 
-![alt text](image-1.png)
+![block decomposition](/assets/images/post/algorithm-rangequery/block-decomposition.png)
 
 由于实际执行的区间加值操作可能只覆盖部分分块区间，对于这种情况，需要转换成复杂度为 $O(s)$ 的遍历操作。对于全区间覆盖，操作复杂度为 $O(1)$，可能覆盖的全区间个数为 $O(n/s)$。所以总的操作时间复杂度为 $O(n/s+s)$，当 $s=\sqrt{n}$ 时可以取到最小值。
 
@@ -166,7 +166,7 @@ Segment tree 在设计上的 intuition 非常直观，它本质上就是*分块*
 所以你可以看到 segment tree 在分块和覆盖节点上做的非常彻底，将所有的区间不断二分直到只剩一个元素(叶子节点)，所有的非叶子节点都是叶子节点的分层覆盖区间。
 
 线段树的形态的例子：
-![alt text](image-3.png)
+![segment tree](/assets/images/post/algorithm-rangequery/segment-tree.png)
 
 线段树通过二分的方式不断划分节点，形成一颗 complete tree，它的树高为 $O(\lceil logN \rceil)$，满节点的情况下节点数量为$O(2^{\lceil logN \rceil+1}-1)\approx4n-5$。所以可以认为它的空间复杂度在 $O(4N)$ 这个级别。
 
@@ -192,6 +192,7 @@ struct SegmentTree {
         build(arr, 0, arr.size()-1, 1); 
     }
 
+    // Time Complexity: O(N)
     void build(const std::vector<int>& arr, int s, int t, int p) {
         // we meet the leaf node here
         if (s == t) {
@@ -240,6 +241,7 @@ struct SegmentTree {
         build_dfs(&root, arr, 0, arr.size()-1);
     }
 
+    // Time Complexity: O(N)
     void build_dfs(TreeNode* root, const std::vector<int>& arr, int l, int r) {
         if(l==r) {
             root->sum=arr[l];
@@ -261,6 +263,7 @@ struct SegmentTree {
 线段树的区间查询也好理解，从 root 节点出发，如果查询区间不能覆盖节点区间，说明查询区间只是节点区间的一部分，我们需要去更小的左右子节点区间上查找，直到我们找到了查询区间可以完全覆盖节点区间的节点。
 
 ```
+// Time Complexity: O(logN)
 int getsum(int l, int r, int s, int t, int p) {
   if (l <= s && t <= r)
     return d[p];
@@ -279,6 +282,7 @@ int getsum(int l, int r, int s, int t, int p) {
 实现过程中有个优化细节，就是每次在做区间修改的时候，如果在检测到当前节点已经存在 lazy tag，可以下推给子节点，这样可以通过均摊的方式减少查询过程中需要多次叠加中间节点的 lazy tag。
 
 ```
+// Time Complexity: O(logN)
 void updateRange(int l, int r, int v) {
     return updateRangeRecur(l, r, v, 0, size-1, 1);
 }
@@ -316,6 +320,7 @@ void updateRangeRecur(int l, int r, int v, int s, int t, int p) {
 
 ### 带 lazy tag 的区间查询
 ```
+// Time Complexity: O(logN)
 int querySum(int l, int r) {
     return querySumRecur(l, r, 0, size-1, 1);
 }
@@ -347,6 +352,7 @@ int querySumRecur(int l, int r, int s, int t, int p) {
 ### 区间更新成某个值
 原理和区间更新差不多，只不过保存的 lazy tag 不再是增量更新，而是一个值：
 ```
+// Time Complexity: O(logN)
 void update(int l, int r, int c, int s, int t, int p) {
   if (l <= s && t <= r) {
     d[p] = (t - s + 1) * c, b[p] = c;
@@ -365,6 +371,7 @@ void update(int l, int r, int c, int s, int t, int p) {
   d[p] = d[p * 2] + d[p * 2 + 1];
 }
 
+// Time Complexity: O(logN)
 int getsum(int l, int r, int s, int t, int p) {
   if (l <= s && t <= r) return d[p];
   int m = s + ((t - s) >> 1);
@@ -394,7 +401,7 @@ int getsum(int l, int r, int s, int t, int p) {
 留做一个 callback 好了，以后有新的想法再回来补充 :)。
 
 这是 BIT 形象化的示意图，我们可以看到 c[1] 到 c[8] 就组成了一颗 BIT，其中每个节点覆盖了源数组中一个区间，比如可以表示区间和、区间乘和异或等。
-![alt text](image-2.png)
+![segment tree](/assets/images/post/algorithm-rangequery/fenwick-tree.png)
 
 事实上，BIT 只能用来解决满足结合律和可差分的问题：
 1. 结合律: $(x \circ y) \circ z = x \circ (y \circ z)$
@@ -423,6 +430,7 @@ private:
         return x & -x;
     }
 
+    // Time Complexity: O(logN)
     int getSum(int index) {
         int sum = 0;
         while (index > 0) {
@@ -433,6 +441,7 @@ private:
         return sum;
     }
 
+    // Time Complexity: O(logN)
     void updateTree(int index, int val) {
         while (index <= n) {
             tree[index] += val;
@@ -504,7 +513,7 @@ void init(const std::vector<int>& arr) {
 ```
 
 ### 单点变更
-由于 BIT[x] 中必定包含索引为 x 的源数组值，因为区间的计算是以 x 为起点的。所以对于单点更新，可以直接更新 BIT[x]。此外，由于覆盖区间的存在，需要更新该节点所有父节点的值，因为他们的区间是包含关系。
+由于 BIT[x] 中必定包含索引为 x 的源数组值，因为区间的计算是以 x 为起点的。所以对于单点更新，可以直接更新 BIT[x]。此外，由于覆盖区间的存在，需要更新该节点所有父节点的值，因为他们的区间是包含关系。其时间复杂度为 $O(logN)$。
 
 父节点的索引可以使用: fa(x)=x+lowbit(x)。
 ```
@@ -525,9 +534,10 @@ void updateTree(int index, int val) {
 
 对于 query(l)，由于 BIT[l] 本身只能根据 lowbit(l) 确定区间长度，所以 BIT[l] 覆盖的不一定是 [1, l]，而是 [l-lowbit(l)+1, l]。为了获取 [1, l] 区间的值，需要跳到上一个区间去，获取它覆盖的区间值，而上一个区间刚好就是 l-lowbit(l)。
 
-通过一直往前跳，直到遇到 0，则我们获取了整个区间 [1, l] 的值。
+通过一直往前跳，直到遇到 0，则我们获取了整个区间 [1, l] 的值。其时间复杂度为 $O(logN)$。 
 
 ```
+// Time Complexity: O(logN)
 int getSum(int index) {
     int sum = 0;
     while (index > 0) {
