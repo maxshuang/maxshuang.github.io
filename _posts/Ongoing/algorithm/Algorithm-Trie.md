@@ -1,8 +1,10 @@
-# Trie
+# Trie 
 ![alt text](image.png)
+O(W)
 
 # Radix Tree(improved Trie with compressed path)
 ![alt text](image-1.png)
+better cache locality, less space cost
 
 # Radix Tree for number
 // split the number into hexadecimal digits
