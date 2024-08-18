@@ -397,13 +397,7 @@ we need topological sort: 1 -> 2 -> 3 -> 4
 1. 如果先访问到 <A, B>，则一定会继续访问 <B, C>， <C, D>，此时有向关系导致顶点的 post-order 输出为 {D, C, B, A};
 2. 如果先访问到 <A, C>, 则一定会继续访问 <C, D>, 再回溯访问 <B, C>， 此时 post-order 输出为 {D, C, B, A};
 
-他们的 reverse post-order 都为 {A, B, C, D}，*貌似 reverse post-order traversal 能在一次 DFS 后捕获到一个顶点的所有邻接顶点间的次序关系*。
-
-*为什么呢?*
-
-我没有想到一个准确的词语描述这里的原因。只能从观察上看，
-1. 如果先访问到 precedence vertex，则 DFS post-order 本身就可以保证 reverse topological sort。
-2. 如果先访问到 successor vertex，回溯算法本身也可以保证 precedence vertex 会被后访问，仍然保证 reverse topological sort。
+我们可以看到 post-order traversal 先访问子结点再访问本身的特性，天然就能输出节点见的有向依赖关系，它最终输出的结果是 reversed post-order traversal, 需要再做一次 reverse 才能获得 topological sort。
 
 [完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/topological.hpp)。
 
