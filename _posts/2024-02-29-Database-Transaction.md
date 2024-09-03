@@ -221,7 +221,7 @@ MySQL 提供 Repeatable Read(RR) 的 isolation level 解决这种数据异常，
 
 > NOTE:  
 > MySQL 的 RR 和 ANSI SQL 基于锁定义的 RR 是不同的概念，MySQL RR 在实现上更加靠近 SI(MVCC 机制)，而 ANSI SQL RR 是通过在 read 时持有 shared lock 直到事务结束实现 RR(禁止其他 write)。  
-> 另外一个不同的地方在与，ANSI SQL RR 的实现方式决定了无法解决 Phantom Read 的问题，而 MySQL RR 可以解决，因为 new insert data 的 commit id 更大，所以是不会被看到的。  
+> 另外一个不同的地方在与，ANSI SQL RR 的实现方式决定了无法解决 Phantom Read 的问题，因为单纯的行锁无法阻止间隙插入，而 MySQL RR 使用了 MVCC 机制，因为 new insert data 的 commit id 更大，所以是不会被看到的。  
 
 对于上面的例子，由于 Transaction1 开始读时 Transaction2 的事务还没有结束，所以 Transaction1 看不到 Transaction2 做的所有变更，从而保证了读到的数据满足一致性要求。
 ```
@@ -239,6 +239,10 @@ isolation level: repeatable read/snapshot isolation
 | t5   | commit; (A1=10;A2=10) | (A1=5;A2=15) |
 
 可以看到 Transaction1 看到的是上一个一致状态(A1=10;A2=10)，底层是新的一致性状态(A1=5;A2=15)。
+
+> NOTE: 
+> MySQL 的 RR 除了 MVCC 之外，还使用了 gap lock，这里有点反直觉的是 newly inserted/deleted records 的 XID 应该都大于读事务的 XID，所以 MVCC 就可以实现一致性读，为什么还需要 gap lock? 因为 MVCC 解决的是 snapshot read 的幻读问题，没有解决 current read 的幻读问题。current read 由于要读取最新的数据版本，所有需要加 read lock，此时如果没有 gap lock，无法解决新插入数据被同一个读事务访问到的问题。
+
 
 ### Write Skew/Phantom And Serializable
 Repeatable Read（RR)/Snapshot Isolation(SI) 可以极大得提高数据库的事务读写并发，并且可以保证读事务可以一直获取到一个一致状态(虽然可能是旧的)，所以在非常多的业务场景下都会使用 RR 或者 SI 作为隔离级别。
