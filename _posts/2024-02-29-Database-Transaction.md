@@ -240,8 +240,9 @@ isolation level: repeatable read/snapshot isolation
 
 可以看到 Transaction1 看到的是上一个一致状态(A1=10;A2=10)，底层是新的一致性状态(A1=5;A2=15)。
 
-> NOTE: 
-> MySQL 的 RR 除了 MVCC 之外，还使用了 gap lock，这里有点反直觉的是 newly inserted/deleted records 的 XID 应该都大于读事务的 XID，所以 MVCC 就可以实现一致性读，为什么还需要 gap lock? 因为 MVCC 解决的是 snapshot read 的幻读问题，没有解决 current read 的幻读问题。current read 由于要读取最新的数据版本，所有需要加 read lock，此时如果没有 gap lock，无法解决新插入数据被同一个读事务访问到的问题。TiDB 的 SI 隔离基本本质上是 MySQL MVCC + snapshot read，没有 current read + gap lock。
+> NOTE:  
+> MySQL 的 RR 除了 MVCC 之外，还使用了 gap lock，这里有点反直觉的是 newly inserted/deleted records 的 XID 应该都大于读事务的 XID，所以 MVCC 就可以实现一致性读，为什么还需要 gap lock? 
+> 因为 MVCC 解决的是 snapshot read 的幻读问题，没有解决 current read 的幻读问题。current read 由于要读取最新的数据版本，所有需要加 read lock，此时如果没有 gap lock，无法解决新插入数据被同一个读事务访问到的问题。TiDB 的 SI 隔离基本本质上是 MySQL MVCC + snapshot read，没有 current read + gap lock。
 
 
 ### Write Skew/Phantom And Serializable
