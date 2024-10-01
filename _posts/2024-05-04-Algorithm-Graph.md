@@ -175,7 +175,7 @@ $edge index
 
 ### 深度优先遍历(DFS)
 
-DFS 可以依赖递归很好得实现顶点回溯访问，同时为了避免重复访问相同的顶点，需要标记数组 marked_ 标记顶点以被访问过。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/dfs_path.cpp)。
+DFS 可以依赖递归很好得实现顶点回溯访问，同时为了避免重复访问相同的顶点，需要标记数组 marked_ 标记顶点以被访问过。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/dfs_path.cpp)。
 
 ```
 void DfsPaths::dfs(const UndirectedGraph& G, int v) {
@@ -194,7 +194,7 @@ DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以�
 
 ### 宽度优先遍历(BFS)
 
-BFS 需要借助队列实现 FIFO 的效果，每访问一个顶点都优先将它的所有未被访问过的邻接顶点入队列。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/bfs_path.cpp)。
+BFS 需要借助队列实现 FIFO 的效果，每访问一个顶点都优先将它的所有未被访问过的邻接顶点入队列。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/bfs_path.cpp)。
 
 ```
 void BfsPaths::bfs(const UndirectedGraph& G, int v) {
@@ -228,7 +228,7 @@ BFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以�
 
 环检测是图的一个常见应用，使用的方法也非常直接---DFS。DFS 本质上是多叉树的回溯访问，在环检测中，我们可以维护当前访问的 path，如果发现邻接顶点已经在 path 中，说明当前 path 成环了。
 
-无向图在环检测实现中要注意排除掉起始顶点，避免误判，比如边<2, 3>，DFS 从 2 访问到 3，3 可能又沿着原始边 <2, 3> 访问到 2，导致误判。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/cycle.hpp)。
+无向图在环检测实现中要注意排除掉起始顶点，避免误判，比如边<2, 3>，DFS 从 2 访问到 3，3 可能又沿着原始边 <2, 3> 访问到 2，导致误判。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/cycle.hpp)。
 
 ```
 void dfs(const UndirectedGraph &g)
@@ -262,6 +262,8 @@ void dfs_recur(const UndirectedGraph &g, int v, int from)
             // because edge of undirected graph is bidirected, 
             // so if we find out this edge is not the original edge, 
             // we know it has a cycle.
+            // [NOTE]: tricky here, it's better to use the edge_to_ to judge the cycle for more clear intention
+            // since it's the undirected graph, from != e.Dest() is enough here
             has_cycle_=true;
             // construct a cycle
             edge_to_[e.Dest()]=e.Src();
@@ -280,7 +282,7 @@ void dfs_recur(const UndirectedGraph &g, int v, int from)
 无向图另外一个有意思的性质是连通性 connectivity。因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected，我们称为这样的连通的顶点集为连通分量(Connected Component)。比如下图中就存在 3 个连通分量。
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 
-一次 DFS 就可以访问到一个连通分量中的所有顶点，所以只要对图中逐个顶点进行 DFS 即可知道图中有多少个 Connected Component。当然已经访问过的顶点就不用再运行 DFS 了。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/undirected_graph/connected_component.hpp)。
+一次 DFS 就可以访问到一个连通分量中的所有顶点，所以只要对图中逐个顶点进行 DFS 即可知道图中有多少个 Connected Component。当然已经访问过的顶点就不用再运行 DFS 了。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/connected_component.hpp)。
 
 ```
 void ConnectedComponent::dfs(const UndirectedGraph &G)
@@ -320,7 +322,7 @@ void ConnectedComponent::dfs_recur(const UndirectedGraph &G, int v)
 
 有向图的环检测和无向图一样，都是通过为当前 path 判断是否出现 path 回环。无环有向图被称为 DAG(Directed Acyclic Graph), DAG 被广泛应用于任务调度中，因为 DAG 可以获得一个满足所有 precedence contraint 的拓扑排序，使得任务调度可以依序进行。
 
-环检测实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/dag.hpp)。
+环检测实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/dag.hpp)。
 
 ```
 void dfs(const Digraph &G)
@@ -399,7 +401,7 @@ we need topological sort: 1 -> 2 -> 3 -> 4
 
 我们可以看到 post-order traversal 先访问子结点再访问本身的特性，天然就能输出节点见的有向依赖关系，它最终输出的结果是 reversed post-order traversal, 需要再做一次 reverse 才能获得 topological sort。
 
-[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/topological.hpp)。
+[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/topological.hpp)。
 
 ```
 void dfs(const Digraph &g)
@@ -463,7 +465,7 @@ Topological Sort 算法本质上也是一次 DFS， 它的 Time Complexity 为 $
 
 一次从 1 开始的 DFS 就可以确定 {1, 2}, {1, 3}, {2, 3} 是可达，但是却不能确定 {2, 1} 和 {3, 1}是不是可达的。
 
-暴力解法可以解决这个问题，我们分别从所有的顶点开始运行 DFS，这样我们就知道 all-pairs reachability。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/transitive_closure.hpp)。
+暴力解法可以解决这个问题，我们分别从所有的顶点开始运行 DFS，这样我们就知道 all-pairs reachability。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/transitive_closure.hpp)。
 
 ```
 TransitiveClosure(const Digraph &g)
@@ -558,7 +560,7 @@ for (k = 0; k < V; k++)
 3. 再以 reverse graph's reverse partial post-order 对原图进行 DFS 问题即可搜索到所有的强连通分量;
 ![reverse_graph](/assets/images/post/algorithm-graph/reverse_graph.png)
 
-上面就是 KosarajuSCC 算法，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/directed_graph/strongly_connected_components.hpp)。
+上面就是 KosarajuSCC 算法，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/strongly_connected_components.hpp)。
 
 ```
 KosarajuSCC(const Digraph& g): marked_(g.V(), false), id_(g.V(), 0), count_(0){ 
@@ -703,7 +705,7 @@ choose: <1, 4, 5.1>  // NOT LEGAL !!!
 // its start vertex and end vertex doesn't belong to different disjoint vertices set.
 ```
 
-Lazy PrimMST 算法实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/lazy_prim_mst.hpp)。
+Lazy PrimMST 算法实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/lazy_prim_mst.hpp)。
 
 ```
 LazyPrimMST(const UndirectedGraph &g) : marked_(g.V(), false), mst_weight_(0.0)
@@ -767,7 +769,7 @@ choose: <3, 2, 1.0>
 MST edge set:  {<1, 3, 2.1>, <3, 2, 1.0>}
 ```
 
-实现 PrimMST 算法需要依赖 IndexPriorityQueue，它是 PriorityQueue 的变种，支持给每个 key 关联一个外部 index，以便根据外部 index 直接修改 PriorityQueue key，然后再调整保持堆性质。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/prim_mst2.hpp)。
+实现 PrimMST 算法需要依赖 IndexPriorityQueue，它是 PriorityQueue 的变种，支持给每个 key 关联一个外部 index，以便根据外部 index 直接修改 PriorityQueue key，然后再调整保持堆性质。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/prim_mst2.hpp)。
 
 ```
 PrimMST(const UndirectedGraph &g) : edge_to_(g.V()), marked_(g.V(), false),
@@ -818,7 +820,7 @@ KruskalMST 算法在选择最小的 crossing edge 方式上，直接从所有边
 
 该算法的正确性也可以用反证法的方式证明：如果某条边已经是当前所有边中 minimum crossing edge, 则它一定是某个 Cut 中的 minimum crossing edge，它一定属于 MST。
 
-算法实现如下，它需要依赖 Union-Find 算法检测 edge 是否是 crossing edge。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp)。
+算法实现如下，它需要依赖 Union-Find 算法检测 edge 是否是 crossing edge。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp)。
 
 ```
 KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf_(g.V()), mst_weight_(0.0) {
@@ -883,7 +885,7 @@ source vertice: 1
 通过这种 greedy 的方式，我们在选择了 V-1 个 SPT vertex 就可以构造出 SPT， 并回答从源点 s 到其他顶点的最短距离。
 
 * DijkstraSP 算法  
-DijkstraSP 算法中，我们同样使用 IndexPriorityQueue 维护所有顶点到源顶点的最小距离，算法流程和 PrimMST 算法基本一样，不同在于 PrimMST 算法在 IndexPriorityQueue 维护的是所有顶点到 MST vertices 的最小权重。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/DijkstraSP.hpp)。
+DijkstraSP 算法中，我们同样使用 IndexPriorityQueue 维护所有顶点到源顶点的最小距离，算法流程和 PrimMST 算法基本一样，不同在于 PrimMST 算法在 IndexPriorityQueue 维护的是所有顶点到 MST vertices 的最小权重。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/DijkstraSP.hpp)。
 
 ```
 DijkstraSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity()), pq_(g.V())
@@ -922,7 +924,7 @@ void relax(const Edge &e)
 DijkstraSP 算法 Time Complexity 为 $O(E*logV)$，其中 $O(E)$ 是 relax 的次数，$O(logV)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(V)$。
 
 * Lazy DijkstraSP 算法  
-类似 Lazy PrimMST 算法，也可以实现 Lazy DijkstraSP 算法，对于 sparse graph 而言，可以通过不断获取 minimum weight edge 的方式 relax vertice，因为 edge weight 都是非负的，所以最后一定可以收敛并获得 SPT。[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/lazy_DijkstraSP.hpp)。
+类似 Lazy PrimMST 算法，也可以实现 Lazy DijkstraSP 算法，对于 sparse graph 而言，可以通过不断获取 minimum weight edge 的方式 relax vertice，因为 edge weight 都是非负的，所以最后一定可以收敛并获得 SPT。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/lazy_DijkstraSP.hpp)。
 
 ```
 LazyDijkstraSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
@@ -982,7 +984,7 @@ then we may think that minimum dist from 1 to 4 is 5,
 because we have no idea when we can get the minimum dist at a casual relax sequence.
 ```
 
-基于 DAG topological order 实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/acyclicSP.hpp)。
+基于 DAG topological order 实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/acyclicSP.hpp)。
 
 ```
 AcyclicSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
@@ -1053,7 +1055,7 @@ Bellman-Ford 算法可以认为是一种暴力解法，理论上证明了即使�
 
 * Lazy Bellman-FordSP 算法  
 
-上面描述的是 Lazy Bellman-FordSP 算法，包括源顶点，直接进行 V 轮 relax，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp)。
+上面描述的是 Lazy Bellman-FordSP 算法，包括源顶点，直接进行 V 轮 relax，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp)。
 
 ```
 LazyBellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
@@ -1120,7 +1122,7 @@ Lazy Bellman-FordSP 算法的 Time Complexity 为 $O(E*V)$，其中需要进行 
 
 更高效率的 Bellman-FordSP 算法只会使用上一轮被 update 过的 vertex 进行 relax，因为只有他们的邻接边才会导致其他顶点到源顶点的距离被更新。
 
-具体实现如下，[完整实现版本链接](https://github.com/maxshuang/Demo/blob/main/algorithm/algorithm/graph/shortest_paths/Bellman_Ford.hpp)。
+具体实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/Bellman_Ford.hpp)。
 
 ```
 BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity()), on_que_(g.V(), false)

@@ -1,0 +1,9 @@
+calculus 是估计数学还是准确数学？？
+
+derivative 是个非常具体且形象的定义
+derivative 的形式推导，chain rule 都可以从形象的想象中推导出来
+derivative 的定义中用到了 limit 极限，而极限也是有严格的数据定义 (sigma, delta), 表示
+任意可以逼近。
+有些极限也可以用 derivative 的思路获取等价的转换形式
+
+integral 积分是利用微分的思想求连续值域的 sum
