@@ -286,3 +286,5 @@ failover 其实是另外的子问题，可以不在这里过多讨论，等讨�
 
 这个过程中，基本就在向别人解释为什么你会得到这样一个设计，你从哪些人那里得到了哪些信息，从而让你决定做这样的 tradeoff,
 这部分就是在 sell your problem solving 能力，communicaton 能力和工程能力。
+
+https://excalidraw.com/#json=EfritKfDLQ8N317PXYhFx,GMxdb8aTwQEkAtu53ni-mQ
