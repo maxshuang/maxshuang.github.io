@@ -5,8 +5,6 @@ source "https://rubygems.org"
 #
 #     bundle exec jekyll serve
 #
-# Gemfile
-source "https://rubygems.org"
 
 # 指定 Ruby 版本
 ruby '3.2.5'
