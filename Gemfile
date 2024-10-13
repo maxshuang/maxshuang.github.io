@@ -7,11 +7,11 @@ source "https://rubygems.org"
 #
 
 # 指定 Ruby 版本
-ruby '2.7.8'
+#ruby '2.7.8'
 
 # Gem 依赖项示例
-gem 'jekyll', '~> 3.9.0'
-gem 'nokogiri', '>= 1.11'
+#gem 'jekyll', '~> 3.9.0'
+#gem 'nokogiri', '>= 1.11'
 # This will help ensure the proper Jekyll version is running.
 # Happy Jekylling!
 #gem "jekyll", "~> 4.2.0"
