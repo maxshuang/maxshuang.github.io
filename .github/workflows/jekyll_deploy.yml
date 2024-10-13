@@ -11,19 +11,33 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the repository code
       - uses: actions/checkout@v2
 
+      # Step 2: Clear any old Ruby 2.7 cache if it exists
+      - run: |
+          rm -rf /github/home/.gem/ruby/2.7.0
+          rm -rf vendor/bundle
+
+      # Step 3: Setup Ruby 3.2 explicitly
       - uses: actions/setup-ruby@v1
         with:
-          ruby-version: '3.x'  # Ensure Ruby 3.x is used
+          ruby-version: '3.2'  # Ensure Ruby 3.2 is used
 
-      # Use GitHub Actions' cache to cache dependencies on servers
+      # Step 4: Install Bundler 2.4.22
+      - run: gem install bundler -v 2.4.22
+
+      # Step 5: Cache dependencies to speed up future builds
       - uses: actions/cache@v2
         with:
           path: vendor/bundle
           key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
           restore-keys: |
             ${{ runner.os }}-gems-
+
+      # Step 6: Install project dependencies with Bundler
+      - run: |
+          bundle install --path vendor/bundle
 
       # Use GitHub Deploy Action to build and deploy to Github
       - uses: jeffreytse/jekyll-deploy-action@v0.3.0
@@ -39,3 +53,8 @@ jobs:
           cname: ''                  # Default is to not use a cname
           actor: ''                  # Default is the GITHUB_ACTOR
           pre_build_commands: ''     # Installing additional dependencies (Arch Linux)
+
+      # Step 8: Clean up to avoid carrying over old states
+      - run: |
+          rm -rf vendor/bundle
+          rm Gemfile.lock
