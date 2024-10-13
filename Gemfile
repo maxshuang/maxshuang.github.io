@@ -5,6 +5,15 @@ source "https://rubygems.org"
 #
 #     bundle exec jekyll serve
 #
+# Gemfile
+source "https://rubygems.org"
+
+# 指定 Ruby 版本
+ruby '3.2.5'
+
+# Gem 依赖项示例
+gem 'jekyll', '~> 4.2.0'
+gem 'nokogiri', '>= 1.11'
 # This will help ensure the proper Jekyll version is running.
 # Happy Jekylling!
 #gem "jekyll", "~> 4.2.0"
