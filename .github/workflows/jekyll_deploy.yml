@@ -31,8 +31,8 @@ jobs:
             ${{ runner.os }}-gems-
 
       # Step 6: Install project dependencies with Bundler
-      - run: |
-          bundle install --path vendor/bundle
+      #- run: |
+      #    bundle install --path vendor/bundle
 
       # Use GitHub Deploy Action to build and deploy to Github
       - uses: jeffreytse/jekyll-deploy-action@v0.3.0
