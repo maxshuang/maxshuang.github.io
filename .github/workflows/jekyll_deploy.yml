@@ -16,7 +16,7 @@ jobs:
 
       # Step 2: Clear any old Ruby 2.7 cache if it exists
       - run: |
-          sudo apt-get remove ruby2.7 -y  # 强制移除 Ruby 2.7
+          #sudo apt-get remove ruby2.7 -y  # 强制移除 Ruby 2.7
           rm -rf /github/home/.gem/ruby/2.7.0  # 移除 Ruby 2.7 的 gem 缓存
           rm -rf vendor/bundle  # 移除旧的依赖包
           sudo apt-get autoremove -y  # 清除未使用的依赖
