@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v2
 
       # Step 3: Setup Ruby 2.7 explicitly
-      - uses: actions/setup-ruby@v1
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7'  # Ensure Ruby 2.7 is used
 
