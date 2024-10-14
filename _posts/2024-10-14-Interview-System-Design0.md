@@ -52,7 +52,7 @@ tags: Interview System-Design
 
 这中间，即使是最简单的 LRU 其实按照上面的标准，我回答的都不好，因为我知道标准答案是什么，所以大部分时候我解释完标准方案后，就直接写了 ac。回想起来，有些我没有界定输入输出的类型和形式，有些没有界定异常场景应该怎么返回，抛异常还是返回 -1，有些因为本身没有 corner cases，所以没有讨论 corner cases。**可能最大的原因还是我已经知道了答案，这反而限制了我和面试官交流展示 problem solving 的能力**。
 
-我在和 atlassian 的一轮 coding 中，意外做得很好，我也提前知道应该怎么实现，但是他给的问题实在是太模糊了，导致我被逼着去界定问题。回想起来，原来那个面试官知道他在找什么。但是在那一轮，我犯了另外一个错误，就是他在讲话的时候因为 accent 的问题，其实我不知道他在说什么，错过了讨论不同解决方案的时机，或者说他认为更好 solution 的 hints。Anyway， ship has sailed.
+我在和 atlassian 的一轮 coding 中，意外做得很好，我也提前知道应该怎么实现，但是他给的问题实在是太模糊了，导致我被逼着去界定问题。回想起来，原来那个面试官知道他在找什么。但是在那一轮，我犯了另外一个错误，就是他在讲话的时候因为 accent 的问题，其实我不知道他在说什么，错过了讨论不同解决方案的时机，或者说他认为更好 solution 的 hints。Anyway，ship has sailed.
 
 ## 正题
 
@@ -89,7 +89,7 @@ tags: Interview System-Design
 1. 输入: advertiser 的文件，文件中只有一个列，对应的是这个广告商所有的注册用户。
 2. 输出：有个 api 会给 match service 发送 get 请求，查询 advertiser+emailhash 是否存在。
 
-![basic-requirement](/assets/images/post/interview-system-design0/image-1.png)
+![basic-requirement](/assets/images/post/interview-system-design0/problem-define.png)
 
 请开始设计！
 
@@ -117,7 +117,7 @@ ok， 新的设计问题，非常贴近实战，没有遇到过，有点慌，�
 
 这是我接下来给出的设计，考虑到有超大文件的存在，我的大致感觉是需要一个 read service，读取文件 metadata， 然后将一个超大文件切分成 block， 可能是个 64MB 之类的，然后传给 compute pool 做并行读取和并行处理。
 
-![parallel-read](/assets/images/post/interview-system-design0/image-2.png)
+![parallel-read](/assets/images/post/interview-system-design0/former-part.png)
 
 这里其实我就做错了一个事情，就是讲述的层次错了，一下子给了细节，后面会讲。提出我的大致处理方案后，我就受到了 challenge， 从这里开始我感觉自己就处于下风了，因为这里可能就开始偏离面试官预设的答案了。他挑战我说 read service 大概在做什么，read service 怎么知道有新的文件，为什么要切分成 block，为什么是 64MB， 如何处理切分后导致的数据断掉的问题。
 
@@ -136,7 +136,7 @@ ok， 新的设计问题，非常贴近实战，没有遇到过，有点慌，�
 
 ### 设计2
 
-![alt text](/assets/images/post/interview-system-design0/image-3.png)
+![alt text](/assets/images/post/interview-system-design0/latter-part.png)
 
 讲完这里我觉得大致设计完了前面的部分，然后跳去了设计后面的部分。为了支持 output， 我增加了 NoSQL database， cache 和 matcher service， 解释了用 NoSQL 是因为中间存储的记录数过多，需要 scalability。cache 是为了加快访问速率，然后解释了下 DB schema 之类。
 
@@ -170,7 +170,7 @@ ok， 新的设计问题，非常贴近实战，没有遇到过，有点慌，�
 2. 我在之前做 system design 练习的时候，没有去关注一些实现上的细节，比如数据流的流动方向，不同 service 间依赖的接口，service 的高可用是怎么做的，service 之间的 push/pull 关系是怎么在 tradeoff 的。
 
 开始描述实现细节
-![alt text](/assets/images/post/interview-system-design0/image-5.png)
+![alt text](/assets/images/post/interview-system-design0/high-available.png)
 [原始链接](https://excalidraw.com/#json=BR9f04bZYnX4kEp6MAQ5t，i_d7RfJxIiZ3ICsdXi2r3Q)
 
 我解释下这个图中的设计，这里我的问题是部分高可用设计是不断被 Q 才设计的，不是主动设计的，这也是做的不好的点。我们具体看下：
@@ -215,7 +215,7 @@ pull 模式就很简单了，数据存储在上游，下游有空闲处理能力
 
 我们的 system design 变成了这个样子。
 
-![alt text](/assets/images/post/interview-system-design0/image-6.png)
+![alt text](/assets/images/post/interview-system-design0/high-available2.png)
 
 设计到这里，其实系统已经相对完整了，满足了基础功能，高可用。
 
@@ -229,9 +229,9 @@ pull 模式就很简单了，数据存储在上游，下游有空闲处理能力
 
 这是架构中非常经典的问题，数据和行为是天然分级的，不管是计算机中的 data locality 和 access locality，还是虚拟内存机制，再到 cache 机制，再到公司的大客户/中客户/小客户。在有限的资源下，需要某种优先级机制，或者轮转机制。
 
-对于这个场景，我们可以给不同的 file 设置不同的 priority，可以使用 priority(waiting time， customer weight， file size) 周期更新 file 的优先级。在有优先级的场景下，compute service 和 read service 使用 pull 机制会更加合理，在自己有能力处理的时候才拉取任务。同时 compute service 也需要提供某种 priority pool 机制，保证不能同时被一个超大文件的 block task 全部占用，要保证有些小文件有机会被优先快速处理。 
+对于这个场景，我们可以给不同的 file 设置不同的 priority，可以使用 priority(waiting time，customer weight，file size) 周期更新 file 的优先级。在有优先级的场景下，compute service 和 read service 使用 pull 机制会更加合理，在自己有能力处理的时候才拉取任务。同时 compute service 也需要提供某种 priority pool 机制，保证不能同时被一个超大文件的 block task 全部占用，要保证有些小文件有机会被优先快速处理。 
 
-![alt text](/assets/images/post/interview-system-design0/image-7.png)
+![alt text](/assets/images/post/interview-system-design0/pull-tasks.png)
 
 到这里为止，就是我认为这个 system design 得到的一个比较合理的结果。这个中间其实我犯了很多错误，不熟悉是一方面，另一方面是整个 system design 讲故事的方式错了。
 
@@ -251,11 +251,11 @@ pull 模式就很简单了，数据存储在上游，下游有空闲处理能力
 high-level design + dataflow， 这个部分是非常高层的设计，目的是阐述在 dataflow 在系统中是怎么流动的，大模块间依赖什么样的接口，比如 RESTful 或者 rpc， 大致的形式是什么样的，存储用的 data schema 是怎么样。  
 这是这个阶段的 high-level design 图，我们只关注非常大的 service 划分，中间的存储，此时可以 walk through 整个 dataflow， 从而给面试官一个整体的感受。对于大 service 之间的交互，可以在这个阶段设计出交互用的 api/rpc/database schema(pk/uk设计)/SQL。此时一个满足基础功能的大致系统就一目了然。
 
-![alt text](/assets/images/post/interview-system-design0/image-8.png)
+![alt text](/assets/images/post/interview-system-design0/high-level-design.png)
 
 6.基础功能其实还没有设计完，因为 read_and_handler service 太宽泛了，我们考虑再细化一下，处理文件需要 2 个步骤，先获取新文件并读取文件的元数据，然后再读取文件的内容，解析文件内容写到 NoSQL 中，所以这里我们对原来的 service 再拆分一次。
 
-![alt text](/assets/images/post/interview-system-design0/image-9.png) 
+![alt text](/assets/images/post/interview-system-design0/read-service.png) 
 
 我们划分出了 meta service， 它负责监听 datalake newfile 并写到 DB 中。有个 handler service 负责读取文件内容并解析存储到 NoSQL 中。
 
@@ -270,7 +270,7 @@ high-level design + dataflow， 这个部分是非常高层的设计，目的是
 
 failover 其实是另外的子问题，可以不在这里过多讨论，等讨论到的时候再考虑，避免丢失焦点。
 
-![alt text](/assets/images/post/interview-system-design0/image-10.png)
+![alt text](/assets/images/post/interview-system-design0/matcher-service.png)
 
 同样对于每个拓展出来的 service， 我们尽量定义他们的交互接口，可能使用交互方式 push/pull， 或者 RESTful/RPC， 这里没有对错。
 
@@ -295,7 +295,7 @@ failover 其实是另外的子问题，可以不在这里过多讨论，等讨�
 都可以讨论。这里假设 compute service 是完全无状态的，就要 split service 维护 blocks 状态，超时后重新提交。此时就要设计对应的 database schema 和超时机制。另外一个就是单个 block 任务挂了的幂等问题，因为文件都是 immutable 的，所以可以重新拉起任务并依赖 DB 的 pk/uk 去重。
 3. 对于存储的高可用，使用 RDS 的可以采用 replica 架构做主备切换，NoSQL 本身具备高可用能力，设置数据 replication 副本数即可。
 
-![alt text](/assets/images/post/interview-system-design0/image-11.png)
+![alt text](/assets/images/post/interview-system-design0/high-available3.png)
 [原始链接](https://excalidraw.com/#json=EfritKfDLQ8N317PXYhFx，GMxdb8aTwQEkAtu53ni-mQ)
 
 
