@@ -50,6 +50,6 @@ jobs:
           pre_build_commands: ''     # Installing additional dependencies (Arch Linux)
 
       # Step 8: Clean up to avoid carrying over old states
-      - run: |
-          rm -rf vendor/bundle
-          rm Gemfile.lock
+      #- run: |
+      #    rm -rf vendor/bundle
+      #    rm Gemfile.lock
