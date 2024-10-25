@@ -35,7 +35,7 @@ I gradually got lost in the various locks and began to wonder.
 
 A lock in concurrency is first of all a consensus, which is a consensus on mutually exclusive access in a specific context.
 
-To be more specific, in a scenario, 10 people want to drink a glass of water, but only one person can drink it. At this time, I stipulate that the person who first calculates $23451*1987$ can drink it. In such a context, I stipulate that the time for each person to calculate $23451*1987$ is different. Therefore, the calculation behavior "calculating $23451*1987$" is a kind of lock in this scenario, because it can reach a consensus on mutually exclusive access in this context .
+To be more specific, in a scenario, 10 people want to drink a glass of water, but only one person can drink it. At this time, I stipulate that the person who first calculates ```23451*1987``` can drink it. In such a context, I stipulate that the time for each person to calculate ```23451*1987``` is different. Therefore, the calculation behavior "calculating ```23451*1987```" is a kind of lock in this scenario, because it can reach a consensus on mutually exclusive access in this context .
 
 Back to the lock in our programming language, because the programming language itself needs to be converted into machine language, the locks in the programming language are based on the consensus on mutually exclusive access provided by the kernel context. To understand what a lock is, you need to understand what consensus on mutually exclusive access the kernel context provides.
 
@@ -44,7 +44,7 @@ The simplest scenario is it does not require locks or consensus on mutually excl
 
 The kernel sets per-CPU variables, which are simple and clear in meaning. The variables will not be executed by multiple CPUs at the same time. A well-known example is the runqueue per CPU in Linux kernel.
 
-There are also thread local variables defined in user mode: _thread int a;
+There are also thread local variables defined in user mode: *_thread int a*;  
 It also means that different threads have different copies. Although the variable name is the same in definition, they do not execute the same memory in different thread memories.
 
 After the user calls fork, the COW(copy-on-write) mechanism ensures that a deep copy is triggered when the data page is modified by either party. At this time, the parent and child processes operate on different resources, so there is no need for consensus on mutually exclusive access .
@@ -109,6 +109,7 @@ In architecture-dependent implementations, ensure that the operation can be tran
 2. For read-modify-write operations, shared memory provides a way to lock the memory bus to serialize access from different CPUs, such as the lock instruction.
 3. For read-modify-write operations, dedicated memory provides inter-processor mechanisms, such as the MESI protocol, to ensure that different cache states of the same variable can affect each other, such as marking the cache of other CPUs as invalid.
 Through the above mechanism, the kernel provides very simple and intuitive atomic variable semantics to the outside world, such as:
+
 ```
 struct atomic_int {
     int v;  // a small and aligned memory
