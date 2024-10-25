@@ -4,7 +4,7 @@
 
 layout: home
 title:  "Home"
-heading: "Nothing is built on stone; all is built on sand, but we must build as if the sand were stone.\n—Jorge Luis Borges"
+heading: "Nothing is built on stone; all is built on sand, but we must build as if the sand were stone.<br>—Jorge Luis Borges"
 author: maxshuang
 banner:
   image: /assets/images/banners/home.jpeg  
