@@ -3,8 +3,8 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 
 layout: home
-title:  "Home"
-heading: "Nothing is built on stone; all is built on sand, but we must build as if the sand were stone.<br>—Jorge Luis Borges"
+title: "Home"
+heading: "Nothing is built on stone; all is built on sand, but we must build as if the sand were stone. —Jorge Luis Borges"
 author: maxshuang
 banner:
   image: /assets/images/banners/home.jpeg  
