@@ -50,7 +50,8 @@ defaults:
   - scope:
       path: ""
     values:
-      lang: "en"
+      lang: en
+      language: en
 
 kramdown:
   math_engine: null
