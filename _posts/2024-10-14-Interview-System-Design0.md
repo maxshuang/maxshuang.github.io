@@ -247,17 +247,17 @@ So far, I believe this is a reasonable outcome for the system design. However, I
 ## Tell the story again
 At the end, let me tell this story again, dividing it into different layers and sub-questions.
 
-1. **Functional Requirements (FR)**: The primary function of this system is straightforward: read data from the data lake and support API queries.
-2. **Non-Functional Requirements (NFR)**: The most immediate NFRs include the scale of input data (10k advertisers, 10k~100GB files) and the output API request frequency (10k RPS). It's crucial to clarify the read semantics provided by the data lake before designing. This includes understanding the interfaces available (e.g., `getMeta(filename)`, `getFile(filename, pos, size)`) and any potential API frequency or bandwidth limits imposed by the data lake (similar to user resource management capabilities in systems like S3).
-3. **Further NFRs**: These may include end-to-end latency limits (e.g., within 2 hours), API latency limits (e.g., within 50ms, which may necessitate denying cross-city, cross-national, and cross-continental service access), high availability, and high scalability.
-4. **System Capacity Estimation**: Based on the previous communication, estimate system capacity, including potential storage options and computing scalability. For instance, 10k files (metadata can be stored in RDS), very large files may need to be divided into blocks for parallel reading and processing. The number of records after processing is 100GB/16B = 6*10^9, which requires NoSQL support.
-5. **Focus on FR**: At this stage, focus on solving the primary problem: meeting the FR (reading data from the data lake and supporting API queries). It's best to tackle one problem at a time. For example, cache is a performance optimization issue. 
-6. **High-Level Design + Dataflow**: This part involves a high-level design to explain how data flows through the system, the interfaces between major modules (e.g., RESTful or RPC), and the general form and data schema used for storage. 
+1.**Functional Requirements (FR)**: The primary function of this system is straightforward: read data from the data lake and support API queries.
+2.**Non-Functional Requirements (NFR)**: The most immediate NFRs include the scale of input data (10k advertisers, 10k~100GB files) and the output API request frequency (10k RPS). It's crucial to clarify the read semantics provided by the data lake before designing. This includes understanding the interfaces available (e.g., `getMeta(filename)`, `getFile(filename, pos, size)`) and any potential API frequency or bandwidth limits imposed by the data lake (similar to user resource management capabilities in systems like S3).
+3.**Further NFRs**: These may include end-to-end latency limits (e.g., within 2 hours), API latency limits (e.g., within 50ms, which may necessitate denying cross-city, cross-national, and cross-continental service access), high availability, and high scalability.
+4.**System Capacity Estimation**: Based on the previous communication, estimate system capacity, including potential storage options and computing scalability. For instance, 10k files (metadata can be stored in RDS), very large files may need to be divided into blocks for parallel reading and processing. The number of records after processing is 100GB/16B = 6*10^9, which requires NoSQL support.
+5.**Focus on FR**: At this stage, focus on solving the primary problem: meeting the FR (reading data from the data lake and supporting API queries). It's best to tackle one problem at a time. For example, cache is a performance optimization issue. 
+6.**High-Level Design + Dataflow**: This part involves a high-level design to explain how data flows through the system, the interfaces between major modules (e.g., RESTful or RPC), and the general form and data schema used for storage. 
 Here's the high-level design diagram at this stage. Focus on the major service divisions and intermediate storage. Walk through the entire dataflow to give the interviewer an overall understanding. For interactions between major services, design the API/RPC/database schema (PK/UK design)/SQL for interaction at this stage. This provides a clear overview of a system that meets the basic functions.
 
 ![high-level-design](/assets/images/post/interview-system-design0/high-level-design.png)
 
-7. The basic functions have not been fully designed yet because the `read_and_handler` service is too broad. We need to refine it further. Processing files involves two steps: first, obtaining the new file and reading its metadata, and second, reading the file's content, parsing it, and writing it into NoSQL. Therefore, we will split the original service.
+7.The basic functions have not been fully designed yet because the `read_and_handler` service is too broad. We need to refine it further. Processing files involves two steps: first, obtaining the new file and reading its metadata, and second, reading the file's content, parsing it, and writing it into NoSQL. Therefore, we will split the original service.
 
 ![read-service](/assets/images/post/interview-system-design0/read-service.png)
 
@@ -265,8 +265,10 @@ We have separated out a `meta` service, which is responsible for listening to th
 
 At this point, we can dive deeper into the design of the `meta` service and the `handler` service. Given that a single file may be 100GB or 1TB, we can discuss the performance optimization sub-problem here, which is how to parallelize the reading and processing of large files. There are many issues that can be discussed here, which depend on a lot of context and require many trade-offs. These are all points that can be interacted with the interviewer. For example:
 
-- **How to parallelize large file processing?** In this case, you need to split the file into blocks based on the file metadata, for example, into 64MB blocks. Why 64MB? Because it is a moderate size and will not occupy a single compute engine for a long time. If it is too small, it will generate too much file-to-blocks metadata.
-- **How to design a compute service?** Here we need to consider whether we need a stateless compute service or a stateful compute service.
+- **How to parallelize large file processing?**  
+In this case, you need to split the file into blocks based on the file metadata, for example, into 64MB blocks. Why 64MB? Because it is a moderate size and will not occupy a single compute engine for a long time. If it is too small, it will generate too much file-to-blocks metadata.
+- **How to design a compute service?**  
+Here we need to consider whether we need a stateless compute service or a stateful compute service.
   - If it is a small team, you can directly design a stateless process/thread pool for parallel processing and transfer failover to the `meta` service. Additionally, it is recommended to use the pull method to ensure that there is no task skew.
   - If it is a large team, you can reuse compute engines such as Spark/Flink, which can automatically perform task failover and also have task persistence capabilities. The various requirements for the `meta` service are very low and are all transferred to the compute service. The push method can be used.
 
@@ -276,7 +278,7 @@ Failover is actually another sub-problem, which we do not need to discuss in det
 
 Similarly, for each expanded service, we define their interaction interfaces, which may use push/pull or RESTful/RPC. There is no right or wrong here.
 
-8. Re-examine this design. It meets the basic functions, the end-to-end dataflow is clear, and the interface and data schema designs are reasonable and usable. Next, let's address how to ensure high availability of the service.
+8.Re-examine this design. It meets the basic functions, the end-to-end dataflow is clear, and the interface and data schema designs are reasonable and usable. Next, let's address how to ensure high availability of the service.
 
 Ensuring high availability is slightly more critical than performance optimization, so we'll discuss it first. Achieving availability and high availability is a priority before considering speed improvements.
 
@@ -303,12 +305,13 @@ This is our latest architecture diagram after addressing the high availability p
 ![highly-available3](/assets/images/post/interview-system-design0/high-available3.png)  
 [OrginalLink](https://excalidraw.com/#json=EfritKfDLQ8N317PXYhFx，GMxdb8aTwQEkAtu53ni-mQ)
 
-9. Next, let's address performance and scalability issues. Performance optimization heavily relies on communication. Some performance issues can be resolved by improving program efficiency, while others may require increased costs, such as adding cache or CDN. It's crucial to confirm through communication whether there's a demand for these solutions. Another key point is to avoid adding cache mindlessly. Use system metrics, such as API gateway logs or opentrace, to identify bottlenecks causing performance problems in the entire data flow. For scalability, consider designing more stateless compute elements on the critical path to reduce the computational load on single roles during request surges.
+9.Next, let's address performance and scalability issues. Performance optimization heavily relies on communication. Some performance issues can be resolved by improving program efficiency, while others may require increased costs, such as adding cache or CDN. It's crucial to confirm through communication whether there's a demand for these solutions. Another key point is to avoid adding cache mindlessly. Use system metrics, such as API gateway logs or opentrace, to identify bottlenecks causing performance problems in the entire data flow. For scalability, consider designing more stateless compute elements on the critical path to reduce the computational load on single roles during request surges.
 
-10. Moving forward, consider how to decouple different modules of the system, support business-level priorities, meet end-to-end SLAs, implement data tiered storage for cost savings based on the natural 80/20 principle, and ensure service SLAs in geographic service design. These are all valuable discussion topics that can showcase your engineering depth.
+10.Moving forward, consider how to decouple different modules of the system, support business-level priorities, meet end-to-end SLAs, implement data tiered storage for cost savings based on the natural 80/20 principle, and ensure service SLAs in geographic service design. These are all valuable discussion topics that can showcase your engineering depth.
 
 In conclusion, a well-designed system should address and solve problems in layers, tackling one issue at a time. This approach allows both parties to focus on a single point, gradually diving deeper from top to bottom, and continuously refining previously designed interfaces and database schemas. This way, you are effectively implementing a system that meets the requirements, with all service interactions and storage schemas thoughtfully designed.
 
+## Conclusion
 Lastly, remember that system design interviews can sometimes be unequal. When faced with a requirement you've never encountered before, it's natural to overlook some aspects in your design. Interviewers often have preconceived notions, thinking, "Why can't they think of what I can think of?" They might not consider the problem comprehensively. Regardless, this is an interview. Focus on improving your expression and communication skills. Don't expect to design a perfect system in one hour.
 
 Oh, it's not over yet. Another major pitfall in system design interviews is being asked to introduce the architecture diagram of your past projects. I used to jump straight into drawing the architecture diagram, making it look very polished, but this approach often led me into a trap.
