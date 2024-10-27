@@ -29,13 +29,9 @@ The core issue is that **the way I presented my answers was wrong**.
 It is similar to solving a LeetCode problem. If the evaluation criteria are the time and space ranking after acceptance (ac), then the best way is to solve the problem directly. **But is this the way to do it during an interview? Not really**. Coding interviews usually emphasize *"problem solving"* after the name, and the "problem solving" aspect is very particular. Let's look at a more reasonable approach to a coding interview:
 
 1. **Clarify the Problem**: When given a relatively vague problem, such as a paraphrase problem, try to explain the problem and confirm whether there is any misunderstanding. Align the vague points by providing examples.
-
 2. **Define Input and Output**: Determine the form of input and output, such as whether they are integers or strings, arrays or single elements, etc.
-
 3. **Propose Solutions**: Propose at least two solutions, analyze their pros and cons, and determine the time and space complexity of different solutions. Walk through the general process with an example, and confirm with the interviewer which solution to implement after ensuring mutual understanding.
-
 4. **Implementation**: Start implementing the solution. Construct normal and abnormal test cases, maintain a reasonable speed, explain while implementing, use reasonable variable names, function names, or comments, and keep the implementation readable and clean.
-
 5. **Review and Test**: After implementation, actively use an example to walk through the entire logic, check and modify minor errors in the implementation process. If possible, run the code, ensure it passes basic use cases, and then discuss with the interviewer what additional test cases can be added. By constructing test cases, check whether the implementation covers abnormal scenarios.
 
 From the above, we can see that although passing the first acceptance (AC) is very important, it is only one step in the process. For a hard-level question, it primarily tests intelligence, making it difficult to assess problem-solving ability. Effective problem-solving involves several specific steps:
@@ -73,7 +69,7 @@ Before diving deeper, there's another crucial point to address: **why hadn't I r
 
 Interestingly, I had prepared extensively for common system design interview questions and practiced with friends. In actual interviews, I performed well on familiar questions but poorly on new ones. This disparity highlighted the importance of asking the right questions during the interview. It wasn't until an on-site interview, where I faced an entirely new problem and collaboratively worked through a solution, that I received feedback and understood the significance of this approach.
 
-Back to the main topic, I would like to explain further:
+Back to the main topic, I would like to explain further:  
 **System design interviews are inherently complex because they require addressing broad, often ambiguous questions. The key is not just to provide a good solution but to demonstrate the process of arriving at that solution. This involves showcasing your problem-solving abilities, communication skills, and technical expertise.**
 
 The critical point is not just to present a good solution but to show the journey of arriving at that solution. This involves demonstrating your analytical skills, effective communication, and continuous improvement based on feedback. Simply providing a final design, like solving a LeetCode problem, is insufficient. The design must be a product of specific requirements, including non-functional aspects like latency and availability.
@@ -120,8 +116,7 @@ Now, it's time to ask questions. The standard starting point is to identify the 
   - Single file size: 10k to 100GB
   - Email MD5: 128 bits
   - Total number of records after processing: 100GB/16B = 6 GB = 6*10^9
-
-  This is crucial because a single file may be very large. The match service needs to provide parallel computing and computing expansion capabilities. The amount of data stored in the intermediate results exceeds the storage capacity of a single MySQL/PostgreSQL machine, so it may be necessary to consider a database such as NoSQL to improve scalability.
+This is crucial because a single file may be very large. The match service needs to provide parallel computing and computing expansion capabilities. The amount of data stored in the intermediate results exceeds the storage capacity of a single MySQL/PostgreSQL machine, so it may be necessary to consider a database such as NoSQL to improve scalability.
 
 2. **What is the order of magnitude of the RPS of the query in output?**
   - 10K level
@@ -162,8 +157,8 @@ This is exactly what I wanted to do: NoSQL + cache + service. But here I started
 
 When I was asked this question, I basically knew that the final result would not be good, because I had actually missed a lot of points in system design:
 
-1. Without communication, assumptions are made, assuming that API access needs to optimize latency and that latency is caused by storage.
-2. Talking about system design lacks a sense of hierarchy. There are actually a lot of things to say about cache, but it is a bit inappropriate to talk about it at the beginning. It should be another functional sub-requirement, such as optimizing performance. Note that it is actually another sub-problem, and now I haven't finished talking about the top-level problem, so I shouldn't go into it in depth.
+1. **Without communication**, assumptions are made, assuming that API access needs to optimize latency and that latency is caused by storage.
+2. **Talking about system design lacks a sense of hierarchy**. There are actually a lot of things to say about cache, but it is a bit inappropriate to talk about it at the beginning. It should be another functional sub-requirement, such as optimizing performance. Note that it is actually another sub-problem, and now I haven't finished talking about the top-level problem, so I shouldn't go into it in depth.
 
 To make up for it here, I still talked about some cache-related technical knowledge, such as using the API gateway's metric to count interface delays, using opentrace to do distributed tracing of the backend system to determine the delay optimization points, and counting the statistical data distribution from the API gateway's log to determine the optimal cache capacity. For example, the different locations where the cache can be placed (client/CDN/server) and the geo+data locality features, the cache's read and write methods (read aside/read through/write through, etc.), different cache eviction policies (LRU/LFU/TTL), cache avalanche/penetration and other issues.
 
@@ -188,12 +183,11 @@ Let's start by describing the implementation details.
 
 ![highly-available](/assets/images/post/interview-system-design0/high-available.png)  
 [original-link](https://excalidraw.com/#json=BR9f04bZYnX4kEp6MAQ5t，i_d7RfJxIiZ3ICsdXi2r3Q)
+
 Let me explain the design in this figure. My problem here is that some high-availability designs are based on continuous questioning rather than proactive planning, which is a weak point. Let's take a closer look:
 
 1. The meta service obtains new files by monitoring or periodically scanning the data lake and writes them to the database. Given that the advertiser count is only 10k and the file size is also only 10k, MySQL or PostgreSQL can be used, with master-slave replication for high availability. I only described the high availability of new file storage, not the high availability of the meta service itself. The meta service is essentially a single point and stateless, but we don't need multiple meta services unless the upstream data volume is very large and requires parallelization by partitioning. To ensure its high availability, it needs hot standby and leader election support, or it can rely on Kubernetes' automatic failover capability. There are trade-offs here, such as handling potential issues with multiple meta services and ensuring unique key deduplication at the data layer. Personally, I prefer having a master election center in the system, which can also handle pub-sub and service discovery.
-
 2. The read service has a straightforward role. The meta service forwards new file information to it, and it is responsible for segmenting and maintaining the metadata {file, [block0, block2, …]}. For its high availability, this information must also be stored in the database. The read service does not need horizontal scaling due to its low computational load, but horizontal scaling through hashing is possible.
-
 3. There is a high availability issue here that I didn't fully consider during the interview because I was new to this problem. This is normal. Reflecting on it now, the data flow goes from the data lake -> meta service -> read service -> compute service. The compute service receives data input, performs computations, and writes the results to NoSQL. Since the input and output are immutable, the failover of a single task can be handled by resubmitting the task.
 
 If the compute service itself has high availability capabilities for tasks, such as automatic failover using a compute engine like Spark or Flink, the read service does not need to handle failover.
@@ -254,22 +248,16 @@ So far, I believe this is a reasonable outcome for the system design. However, I
 At the end, let me tell this story again, dividing it into different layers and sub-questions.
 
 1. **Functional Requirements (FR)**: The primary function of this system is straightforward: read data from the data lake and support API queries.
-
 2. **Non-Functional Requirements (NFR)**: The most immediate NFRs include the scale of input data (10k advertisers, 10k~100GB files) and the output API request frequency (10k RPS). It's crucial to clarify the read semantics provided by the data lake before designing. This includes understanding the interfaces available (e.g., `getMeta(filename)`, `getFile(filename, pos, size)`) and any potential API frequency or bandwidth limits imposed by the data lake (similar to user resource management capabilities in systems like S3).
-
 3. **Further NFRs**: These may include end-to-end latency limits (e.g., within 2 hours), API latency limits (e.g., within 50ms, which may necessitate denying cross-city, cross-national, and cross-continental service access), high availability, and high scalability.
-
 4. **System Capacity Estimation**: Based on the previous communication, estimate system capacity, including potential storage options and computing scalability. For instance, 10k files (metadata can be stored in RDS), very large files may need to be divided into blocks for parallel reading and processing. The number of records after processing is 100GB/16B = 6*10^9, which requires NoSQL support.
-
 5. **Focus on FR**: At this stage, focus on solving the primary problem: meeting the FR (reading data from the data lake and supporting API queries). It's best to tackle one problem at a time. For example, cache is a performance optimization issue. 
-
-**High-Level Design + Dataflow**: This part involves a high-level design to explain how data flows through the system, the interfaces between major modules (e.g., RESTful or RPC), and the general form and data schema used for storage. 
-
+6. **High-Level Design + Dataflow**: This part involves a high-level design to explain how data flows through the system, the interfaces between major modules (e.g., RESTful or RPC), and the general form and data schema used for storage. 
 Here's the high-level design diagram at this stage. Focus on the major service divisions and intermediate storage. Walk through the entire dataflow to give the interviewer an overall understanding. For interactions between major services, design the API/RPC/database schema (PK/UK design)/SQL for interaction at this stage. This provides a clear overview of a system that meets the basic functions.
 
 ![high-level-design](/assets/images/post/interview-system-design0/high-level-design.png)
 
-6. The basic functions have not been fully designed yet because the `read_and_handler` service is too broad. We need to refine it further. Processing files involves two steps: first, obtaining the new file and reading its metadata, and second, reading the file's content, parsing it, and writing it into NoSQL. Therefore, we will split the original service.
+7. The basic functions have not been fully designed yet because the `read_and_handler` service is too broad. We need to refine it further. Processing files involves two steps: first, obtaining the new file and reading its metadata, and second, reading the file's content, parsing it, and writing it into NoSQL. Therefore, we will split the original service.
 
 ![read-service](/assets/images/post/interview-system-design0/read-service.png)
 
@@ -288,7 +276,7 @@ Failover is actually another sub-problem, which we do not need to discuss in det
 
 Similarly, for each expanded service, we define their interaction interfaces, which may use push/pull or RESTful/RPC. There is no right or wrong here.
 
-7. Re-examine this design. It meets the basic functions, the end-to-end dataflow is clear, and the interface and data schema designs are reasonable and usable. Next, let's address how to ensure high availability of the service.
+8. Re-examine this design. It meets the basic functions, the end-to-end dataflow is clear, and the interface and data schema designs are reasonable and usable. Next, let's address how to ensure high availability of the service.
 
 Ensuring high availability is slightly more critical than performance optimization, so we'll discuss it first. Achieving availability and high availability is a priority before considering speed improvements.
 
@@ -315,9 +303,9 @@ This is our latest architecture diagram after addressing the high availability p
 ![highly-available3](/assets/images/post/interview-system-design0/high-available3.png)  
 [OrginalLink](https://excalidraw.com/#json=EfritKfDLQ8N317PXYhFx，GMxdb8aTwQEkAtu53ni-mQ)
 
-8. Next, let's address performance and scalability issues. Performance optimization heavily relies on communication. Some performance issues can be resolved by improving program efficiency, while others may require increased costs, such as adding cache or CDN. It's crucial to confirm through communication whether there's a demand for these solutions. Another key point is to avoid adding cache mindlessly. Use system metrics, such as API gateway logs or opentrace, to identify bottlenecks causing performance problems in the entire data flow. For scalability, consider designing more stateless compute elements on the critical path to reduce the computational load on single roles during request surges.
+9. Next, let's address performance and scalability issues. Performance optimization heavily relies on communication. Some performance issues can be resolved by improving program efficiency, while others may require increased costs, such as adding cache or CDN. It's crucial to confirm through communication whether there's a demand for these solutions. Another key point is to avoid adding cache mindlessly. Use system metrics, such as API gateway logs or opentrace, to identify bottlenecks causing performance problems in the entire data flow. For scalability, consider designing more stateless compute elements on the critical path to reduce the computational load on single roles during request surges.
 
-9. Moving forward, consider how to decouple different modules of the system, support business-level priorities, meet end-to-end SLAs, implement data tiered storage for cost savings based on the natural 80/20 principle, and ensure service SLAs in geographic service design. These are all valuable discussion topics that can showcase your engineering depth.
+10. Moving forward, consider how to decouple different modules of the system, support business-level priorities, meet end-to-end SLAs, implement data tiered storage for cost savings based on the natural 80/20 principle, and ensure service SLAs in geographic service design. These are all valuable discussion topics that can showcase your engineering depth.
 
 In conclusion, a well-designed system should address and solve problems in layers, tackling one issue at a time. This approach allows both parties to focus on a single point, gradually diving deeper from top to bottom, and continuously refining previously designed interfaces and database schemas. This way, you are effectively implementing a system that meets the requirements, with all service interactions and storage schemas thoughtfully designed.
 
