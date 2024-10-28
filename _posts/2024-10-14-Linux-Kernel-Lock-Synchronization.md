@@ -273,6 +273,7 @@ This type of lock uses two mechanisms in its implementation:
 2. Execution flows that do not hold resources are suspended.
 
 You may be curious, **why do we need to provide semaphore primitives when we can implement semaphores directly through condition variables?**   
+
 There are several reasons:  
 1. *The design purposes are different*: condition variables are aimed at synchronization **under complex conditional judgments**, and require mutex locks to protect the condition checks; semaphores are used to control concurrent access to limited resources. Semaphores **essentially only rely on an atomic counter** and do not need to check complex conditions.
 2. *The requirements for locks are different*: condition variables **rely on locks** to make complex conditional judgments safe. Separating the locks allows the use of more flexible lock mechanisms, such as shared locks. Semaphores do not actually require locks, they **only require atomic counters** and kernel wait wake-up mechanism support.
