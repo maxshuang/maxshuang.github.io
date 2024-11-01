@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Linux Kernel-Lock and Synchronization(Ongoing)
+title: Linux Kernel-Lock and Synchronization (Ongoing)
 subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Linux-Kernel
@@ -17,100 +17,99 @@ tags: Linux-Kernel Concurrency Lock
 
 ## What is Lock
 
-I have been thinking about this topic for a long time and I have been writing for a long time, but I am not very satisfied with it. Recently, I have been interviewing and I just got inspiration.
+I've been pondering this topic for a long time and have written about it extensively. However, I was never quite satisfied. Recently, during some interviews, I found new inspiration.
 
-The first time I came into contact with the concept of "lock" was when I was exposed to multi-threaded programming. Lock is an essential tool to ensure data integrity when the same data is accessed by multiple concurrent logics at the same time.
+My first encounter with the concept of a "lock" was in multi-threaded programming. Locks are essential tools to ensure data integrity when multiple concurrent processes access the same data.
 
-If we ignore the implementation of the lock and only consider the lock primitives, we can imagine that in order to get the supplies in the room in an orderly manner. *Multiple people need to lock the door in sequence, take the things, and then unlock the door to let the next person in. In this way, no matter whether multiple people are lined up in a row or scattered at the door, only one person can enter the door at any time.*
+If we ignore the implementation details and focus on the lock primitives, we can imagine a scenario where multiple people need to access supplies in a room in an orderly manner. They must lock the door, take what they need, and then unlock the door for the next person. This ensures that only one person can enter the room at a time, regardless of how many people are waiting.
 
-As I got deeper into programming, I gradually came into contact with various locks, such as critical sections/read-write locks/spin locks in the Linux kernel, row lock, gap lock, next-key lock and intention lock in the database, ReentrantLock, StampedLock and Latch in Java, and even lock-free data structures in high-concurrency data structures.
+As I delved deeper into programming, I encountered various types of locks, such as:
+- Critical sections, read-write locks, and spin locks in the Linux kernel
+- Row locks, gap locks, next-key locks, and intention locks in databases
+- ReentrantLock, StampedLock, and Latch in Java
 
-I gradually got lost in the various locks and began to wonder.
+I even explored lock-free data structures in high-concurrency scenarios.
+
+I began to wonder:
 
 **What exactly is a lock?**
 
-**What are the underlying locks of the existing ones? Why do locks incur overhead? How to create new locks?**
+**What are the underlying principles of existing locks? Why do locks incur overhead? How can we create new locks?**
 
 ## The Consensus in Synchronization
 
-A lock in concurrency is first of all a consensus, which is a consensus on mutually exclusive access in a specific context.
+A lock in concurrency is fundamentally a consensus on mutually exclusive access within a specific context.
 
-To be more specific, in a scenario, 10 people want to drink a glass of water, but only one person can drink it. At this time, I stipulate that the person who first calculates ```23451*1987``` can drink it. In such a context, I stipulate that the time for each person to calculate ```23451*1987``` is different. Therefore, the calculation behavior "calculating ```23451*1987```" is a kind of lock in this scenario, because it can reach a consensus on mutually exclusive access in this context .
+For example, imagine 10 people wanting to drink a glass of water, but only one person can drink at a time. If we stipulate that the first person to calculate `23451*1987` can drink, then the calculation itself becomes a lock, as it ensures mutually exclusive access in this context.
 
-Back to the lock in our programming language, because the programming language itself needs to be converted into machine language, the locks in the programming language are based on the consensus on mutually exclusive access provided by the kernel context. To understand what a lock is, you need to understand what consensus on mutually exclusive access the kernel context provides.
+In programming, locks are based on the consensus provided by the kernel context. To understand what a lock is, we need to understand the consensus on mutually exclusive access provided by the kernel.
 
 ## Lock-free Scenarios
-The simplest scenario is it does not require locks or consensus on mutually exclusive access. In a multi-core environment, if the concurrent stream is a CPU, we set per-CPU variables; if the concurrent stream is multi-process, we set multi-process variables; if the concurrent stream is multi-threaded, we set per-thread variables. In this way, we do not need to consider the concept of locks.
 
-The kernel sets per-CPU variables, which are simple and clear in meaning. The variables will not be executed by multiple CPUs at the same time. A well-known example is the runqueue per CPU in Linux kernel.
+The simplest scenario is one that does not require locks or consensus on mutually exclusive access. In a multi-core environment, we can use per-CPU variables for concurrent streams. If the concurrent stream is multi-process, we use multi-process variables; if it's multi-threaded, we use per-thread variables. This way, we don't need to consider locks.
 
-There are also thread local variables defined in user mode: *_thread int a*;  
-It also means that different threads have different copies. Although the variable name is the same in definition, they do not execute the same memory in different thread memories.
+The kernel sets per-CPU variables, ensuring that variables are not accessed by multiple CPUs simultaneously. A well-known example is the per-CPU runqueue in the Linux kernel.
 
-After the user calls fork, the COW(copy-on-write) mechanism ensures that a deep copy is triggered when the data page is modified by either party. At this time, the parent and child processes operate on different resources, so there is no need for consensus on mutually exclusive access .
+There are also thread-local variables in user mode: `_thread int a`. Different threads have different copies, so they don't access the same memory.
 
-To further explain the kernel context's consensus concept for mutually exclusive access, let's look at a somewhat counterintuitive scenario.
+After a user calls fork, the COW (copy-on-write) mechanism ensures that a deep copy is triggered when the data page is modified. This way, the parent and child processes operate on different resources, eliminating the need for consensus on mutually exclusive access.
 
-### Kernel Preempion
-Theoretically and by definition, data security can be guaranteed for each CPU variable. After all, no matter which logic flow is executed on other CPUs, the value of the CPU variable will not be accessed.
+To further explain the kernel context's consensus on mutually exclusive access, let's consider a counterintuitive scenario.
 
-The tricky part is that the local CPU does not execute sequentially. In the scenario where kernel preemption is enabled, the kernel execution code is interrupted and the execution flow may be preempted by other processes. 
+### Kernel Preemption
+
+Theoretically, data security can be guaranteed for each CPU variable. However, in a scenario where kernel preemption is enabled, the kernel execution code can be interrupted, and the execution flow may be preempted by other processes.
 
 Consider the following scenario:
 ```
 Kernel Mode CPU0:
 
 1. CPU0 executes the system call kernel path of Process 1, accessing CPU0's per-CPU variable `runqueue[0]`.
-2. It reads Process Descriptor A and is preparing to insert Process Descriptor B after A in the linked list, but the operation is only halfway done.
-3. A clock interrupt occurs, and CPU0's execution flow is forcibly interrupted to execute the clock interrupt service routine.
-4. The interrupt service routine detects that Process 2 has a higher priority. Before exiting the interrupt service routine, it switches CPU0 to the kernel path of Process 2.
-5. The kernel path of Process 2 also reads Process Descriptor A, prepares to insert Process Descriptor C after A in the linked list, and completes the operation.
-6. CPU0 schedules Process 1 to continue executing its previous kernel path and completes the remaining half of its operation.
+2. It reads Process Descriptor A and begins inserting Process Descriptor B after A in the linked list, but the operation is only partially completed.
+3. A clock interrupt occurs, forcibly interrupting CPU0's execution flow to handle the clock interrupt service routine.
+4. The interrupt service routine detects that Process 2 has a higher priority. Before exiting, it switches CPU0 to the kernel path of Process 2.
+5. The kernel path of Process 2 reads Process Descriptor A, inserts Process Descriptor C after A in the linked list, and completes the operation.
+6. CPU0 then schedules Process 1 to resume its previous kernel path and finish the remaining part of its operation.
 ```
 
-It can be seen that due to the kernel preemption mechanism, the CPU0 runqueue[0] data is corrupted by the alternate execution logic.
+Due to the kernel preemption mechanism, the CPU0 `runqueue[0]` data is corrupted by the alternate execution logic.
 
-In this scenario, *is the pure pre-CPU variable a consensus for mutually exclusive access?*
+In this scenario, is the pure per-CPU variable a consensus on mutually exclusive access?
 
-**Not yet**, although it looks like it, but the way the kernel context handles interrupts determines that *pre-CPU variables + disabling kernel preemption + disabling interrupts* is a consensus on mutually exclusive access .
+**Not yet.** Although it seems like it, the way the kernel context handles interrupts determines that *per-CPU variables + disabling kernel preemption + disabling interrupts* is a consensus on mutually exclusive access.
 
-Through this example, we have a deeper understanding of how consensus is different in different contexts.
+This example deepens our understanding of how consensus varies in different contexts.
 
-## Atomic Lock(Atomic Variable)
+## Atomic Lock (Atomic Variable)
 
-After looking at the lock-free scenario, let's take a small step forward. Assuming that the business **does** need to use multiple concurrent streams to access the same data, what is the simplest mutually exclusive access consensus we can provide?
+After exploring lock-free scenarios, let's take a small step forward. Assuming that multiple concurrent streams need to access the same data, what is the simplest mutually exclusive access consensus we can provide?
 
-**One idea is**:   
-*Is it possible to stipulate a small block of memory, under some mechanism, that the kernel context can reach a consensus on its mutually exclusive access?*
+One idea is to stipulate a small block of memory that, under certain mechanisms, the kernel context can reach a consensus on its mutually exclusive access.
 
-For example: multiple threads and multiple processes can reach a consensus on a 4-byte int variable, stipulating that all +1/-1 instructions for int operations are atomic. The thread that sets the int variable to 1 first occupies the resources, otherwise it does not occupy the resources. When it does not occupy the resources, it returns an error to the upper layer, or the process is moved to the waiting queue.
+For example, multiple threads and processes can reach a consensus on a 4-byte int variable, stipulating that all +1/-1 instructions for int operations are atomic. The thread that sets the int variable to 1 first occupies the resources; otherwise, it does not. When it does not occupy the resources, it returns an error to the upper layer, or the process is moved to the waiting queue.
 
-**This is a feasible assumption, but it needs to be more specific**. Let's assume that all variables are only read and written in the main memory, there is no cache, and the processor provides CAS(Compare And Set) atomic instructions. In this way, when each concurrent flow executes $cas(variable, old value, new value)$, it can be guaranteed in the entire kernel context that no matter what the execution order of the concurrent flows is, it can be guaranteed that at any time, only one execution flow can occupy the resource. This is a consensus of mutually exclusive access .
+This is a feasible assumption, but it needs to be more specific. Let's assume that all variables are only read and written in the main memory, there is no cache, and the processor provides CAS (Compare And Set) atomic instructions. This way, when each concurrent flow executes `cas(variable, old value, new value)`, it can be guaranteed that only one execution flow can occupy the resource at any time. This is a consensus on mutually exclusive access.
 
-This is our atomic variable, or what we call an atomic lock. Its *read-modify-write* operation is atomic and indivisible. In this way, concurrent execution flows can naturally operate serially on this memory block because it is the smallest indivisible operation unit (or primitive).
+This is our atomic variable, or atomic lock. Its *read-modify-write* operation is atomic and indivisible. Concurrent execution flows can naturally operate serially on this memory block because it is the smallest indivisible operation unit (or primitive).
 
-What's even better is that based on such a lock primitive, we can expand it, such as having concurrent streams that occupy resources do more things and then release the resources (set the int to 0).
+Based on such a lock primitive, we can expand it, allowing concurrent streams that occupy resources to do more things and then release the resources (set the int to 0).
 
-**Are we reaching the end?**
+Are we reaching the end?
 
-**Wake up, we have just confirmed the right direction.**
+**Not yet.**
 
-The real kernel context is not what we assumed above, where all variables are only read and written in the main memory. The actual situation is that the hardware system has different levels of cache, such as the famous memory mountain structure. The access latency is in the order of registers, CPU-specific L1/L2 hardware cache, CPU-shared L3 hardware cache, and then shared physical memory.
+The real kernel context is more complex. The actual situation involves different levels of cache, such as the memory hierarchy. The hardware system-level support for atomic variable semantics is complex. We can imagine several inconsistent scenarios:
 
-![memory-hierarchy](/assets//images/post/linux-kernel-synchronization/memory-hierarchy.png)
-
-The hardware system-level support for the operational semantics of atomic variables is complex. We can imagine several inconsistent scenarios:
-
-1. The variable memory is *not aligned to* the native word size, or the variable memory is not within the memory operation range of one instruction, and multiple instructions are required to operate the variable. Multiple CPUs may alternate between instructions, for example, the first 8 bytes and the last 8 bytes of a variable may not be in one atomic operation.
-2. The simplest state change a++ *requires not one operation*, but three operations: reading the value of variable a in memory into a register, changing the register, and writing the register value back to memory. Multiple CPUs may alternate between operations, for example, causing updates to be lost.
-3. In the memory mountain structure, *some storage is CPU-specific*, such as registers L1/L2, and some storage is CPU-shared, such as L3/memory. For shared storage, we can serialize memory access to specific areas by locking the memory bus, but for unique storage, there may be old variable values ​​in the hardware cache L1/L2, and the CPU may mistakenly believe that it has obtained the latest value.
+1. The variable memory is not aligned to the native word size, or the variable memory is not within the memory operation range of one instruction, requiring multiple instructions to operate the variable. Multiple CPUs may alternate between instructions.
+2. The simplest state change `a++` requires three operations: reading the value of variable `a` into a register, changing the register, and writing the register value back to memory. Multiple CPUs may alternate between operations, causing updates to be lost.
+3. In the memory hierarchy, some storage is CPU-specific, such as registers and L1/L2 cache, while some storage is CPU-shared, such as L3 cache and memory. For shared storage, we can serialize memory access by locking the memory bus, but for unique storage, there may be old variable values in the hardware cache, causing inconsistencies.
 
 Therefore, for the implementation of atomic variables, the following mechanisms are required at the system level:
-1. **In architecture-dependent implementations**, variables need to be aligned to the native word size to implement single write or single read variable atomic operations. For example, an 8-byte variable needs the lower 3 bits of the address to be 0.
-In architecture-dependent implementations, ensure that the operation can be translated into a single instruction for execution.
-2. **For read-modify-write operations**, shared memory provides a way to lock the memory bus to serialize access from different CPUs, such as the lock instruction.
-3. **For read-modify-write operations**, dedicated memory provides inter-processor mechanisms, such as the MESI protocol, to ensure that different cache states of the same variable can affect each other, such as marking the cache of other CPUs as invalid.
-Through the above mechanism, the kernel provides very simple and intuitive atomic variable semantics to the outside world, such as:
+1. **Architecture-dependent implementations**: Variables need to be aligned to the native word size to implement single write or single read atomic operations.
+2. **Read-modify-write operations**: Shared memory provides a way to lock the memory bus to serialize access from different CPUs.
+3. **Read-modify-write operations**: Dedicated memory provides inter-processor mechanisms, such as the MESI protocol, to ensure cache consistency.
+
+Through these mechanisms, the kernel provides simple and intuitive atomic variable semantics, such as:
 
 ```
 struct atomic_int {
@@ -130,7 +129,7 @@ Possible corresponding compilation:
 lock addl	$1, count(%rip)   // lock memory bus+ invalidate the variables in other caches
 ```
 
-The kernel provides some atomic operations as follows:
+The kernel provides atomic operations such as:
 
 ```
 atomic_read(v)                // Return *v
@@ -138,7 +137,7 @@ atomic_add(i,v)               // Add i to *v
 atomic_sub_and_test(i, v)     // Subtract i from *v and return 1 if the result is zero; 0 otherwise
 ```
 
-Atomic variables provide very reliable synchronization primitives, all reads/writes/read-modify-writes on atomic variables are considered instant and simutaneous on multiprocessors. Thus, the operations of multiple processors on the atomic variable are synchronized, and finally some order is shown, such as:
+Atomic variables provide reliable synchronization primitives. All reads/writes/read-modify-writes on atomic variables are considered instant and simultaneous on multiprocessors. Thus, the operations of multiple processors on the atomic variable are synchronized, showing some order, such as:
 
 ```
 define atomic_int v;
@@ -147,19 +146,19 @@ define atomic_int v;
 | ts      |  P1     |   P2   |    P3  |
 |---------|---------|--------|--------|
 | t1      | read v  |        |        |
-| t2      |         |        |write v |
-| t3      |         |r-m-w v |        |
-| t4      | write v |        |        | 	
+| t2      |         |        | write v|
+| t3      |         | r-m-w v|        |
+| t4      | write v |        |        |
 
-Well, computer experts have finally helped us take a big step forward in the history of locks, and we have reached a reliable consensus on mutually exclusive access in the kernel context. 
+Computer experts have helped us take a significant step forward in the history of locks. They have reached a reliable consensus on mutually exclusive access in the kernel context. This consensus is based on hardware system instruction control, such as memory bus locks and the MESI cache consistency protocol. These hardware instruction details are encapsulated in the compiler based on the hardware system.
 
-This consensus is more based on the instruction control of the hardware system, such as the memory bus lock and the MESI cache consistency protocol. These hardware instruction details are encapsulated in the compiler based on the hardware system.
+## The Implementation of Locks
 
-## The implementation of Lock
-Based on this reliable consensus on atomic variables, we can begin to look at the true nature of various locks used in daily programming, as well as the lock overhead issue we often mention.
+Based on the reliable consensus provided by atomic variables, we can explore the true nature of various locks used in daily programming and address the issue of lock overhead.
 
 ### Exclusive Lock and Critical Section
-If you have done multi-threaded development before, then you must have understood the concept of mutex locks, which is almost a standard starting point. The classic interface of a mutex lock is as follows:
+
+If you have experience with multi-threaded development, you are likely familiar with mutex locks, which are often the starting point. The classic interface of a mutex lock is as follows:
 
 ```
 Mutex mux;
@@ -168,38 +167,37 @@ mux.lock(); // or mux.tryLock();
 mux.unlock();
 ```
 
-In fact, what is more interesting is: **what is a mutex lock**.
+But **what exactly is a mutex lock**?
 
-When you ask this question, you actually already have a certain insecurity in your mind and feel uneasy about the black box of the operating system.
+When you ask this question, you might already feel uneasy about the operating system's black box.
 
-We can understand this problem in this way. If you have read my previous [blog](https://maxshuang.github.io/linux-kernel/2022/07/25/What-The-Linux-Kernel-Does.html), you should know that we did not have such a complex operating system and the concept of locks at the beginning. There was only a CPU that could execute instructions sequentially and a continuous physical memory. In order to solve the problem of CPU speed, we introduced the concepts of multi-process multi-threading and time-sharing multiplexing. In order to solve the problem of hot and cold memory and locality, we introduced virtual memory and paging mechanism.
+To understand this, consider the evolution of computing. Initially, there was only a CPU executing instructions sequentially and continuous physical memory. To address CPU speed issues, we introduced multi-process multi-threading and time-sharing multiplexing. To handle memory locality, we introduced virtual memory and paging mechanisms.
 
-Under the premise of introducing these complex concepts, we now require a concept of mutual exclusion lock so that different concurrent flows can reach a **consensus**. This consensus is that only one execution flow can obtain resources or continue execution at a time.
+With these complex concepts in place, we now need a mutual exclusion lock to ensure that different concurrent flows can reach a **consensus**: only one execution flow can access resources or continue execution at a time.
 
-**So how can we reach this consensus**? Coincidentally, the atomic lock that the kernel has worked so hard to implement can provide this *consensus*, which is why we call the atomic lock => a primitive.
+**How can we achieve this consensus?** The atomic lock, implemented by the kernel, provides this *consensus*, which is why we call it a primitive.
 
-Atomic locks or atomic variables give us such semantics that any operation on an atomic variable (essentially a small block of memory) is instant and simutaneous to all observers, regardless of the cache structure of the operating system.
+Atomic locks or atomic variables ensure that any operation on an atomic variable (essentially a small block of memory) is instant and simultaneous to all observers, regardless of the operating system's cache structure.
 
-With this primitive, before concurrent execution flows access a large block of shared memory, they read and operate on an atomic variable, such as using $cas(varA, 0, 1)$. Because the cas operation is guaranteed to be atomic at the hardware level, there is only one execution flow that can set varA to 1. This execution flow becomes the one that can continue to operate.
+With this primitive, before concurrent execution flows access a large block of shared memory, they read and operate on an atomic variable, such as using `cas(varA, 0, 1)`. Because the `cas` operation is guaranteed to be atomic at the hardware level, only one execution flow can set `varA` to 1. This execution flow can then continue to operate.
 
-The question is: **what happened to the concurrent execution flows that failed?**
+**What happens to the concurrent execution flows that fail?**
 
-Good question! Atomic variables only allow concurrent execution flows to reach a consensus, but those execution flows that think they do not have permission to operate need to take certain actions, which is implementation-dependent. In the Linux kernel, this action is **blocking**.
+Atomic variables ensure that concurrent execution flows reach a consensus, but those that do not obtain permission need to take certain actions, which are implementation-dependent. In the Linux kernel, this action is **blocking**.
 
-I use the word **blocking** because it is very vivid and gives people a feeling of waiting, which is the hardware context switching in the Linux kernel. We introduced this concept in the [process switching blog](https://maxshuang.github.io/linux-kernel/2024/01/11/Linux-Kernel-Process-Scheduler.html). In essence, it is to save the context related to the execution flow in the memory and wait for the next scheduling, which creates a feeling that the execution flow is blocked and waiting.
+Blocking involves hardware context switching, where the context related to the execution flow is saved in memory, and the flow waits for the next scheduling. This creates the feeling that the execution flow is blocked and waiting.
 
-When the blocking wait ends, the waiting execution flows compete for the mutex lock again. **What's going on?** We can imagine that after the hardware context of all waiting execution flows is switched, their execution flow IDs are uniformly maintained in a queue or list. When the execution flow that holds the lock releases the lock, these execution flows will be **awakened** in some way. The specific meaning of *awakening* is to add the structure of the execution flow from the waiting or sleeping queue to the runqueue, waiting to obtain the CPU time slice for execution. Sometimes we hear a phenomenon called **herd shock**, which is essentially about whether to wake up all the waiting execution flows at once and let them run the logic of operating atomic variables again. Of course, this will lose efficiency, and the kernel can use better algorithms, such as selecting the first waiting execution flow according to FIFO.
+When the blocking wait ends, the waiting execution flows compete for the mutex lock again. **What happens then?** Imagine that after the hardware context of all waiting execution flows is switched, their execution flow IDs are maintained in a queue or list. When the execution flow holding the lock releases it, these flows are **awakened**. Awakening means adding the execution flow from the waiting or sleeping queue to the runqueue, waiting to obtain CPU time for execution. Sometimes, this causes **herd shock**, where all waiting flows are awakened at once, leading to inefficiency. The kernel can use better algorithms, such as selecting the first waiting flow according to FIFO.
 
-At this point we have finished talking about the basic principles of mutex locks in the kernel, let's summarize:
-1. Atomic variables ensure that concurrent flows **serialize** their resource possession behavior. Only one execution flow can possess resources, and the behavior of possessing resources will be immediately seen by other concurrent flows.
-2. The execution flow that does not occupy resources is **suspended** by the kernel and placed in the lock waiting queue. The waiting concurrent execution flow is awakened after the lock is released.
+To summarize:
+1. Atomic variables ensure that concurrent flows **serialize** their resource possession behavior. Only one execution flow can possess resources, and this behavior is immediately visible to other concurrent flows.
+2. Execution flows that do not occupy resources are **suspended** by the kernel and placed in the lock waiting queue. They are awakened after the lock is released.
 
-From the implementation mechanism, we can see that the overhead of this type of blocking lock lies in the synchronization protocol overhead of atomic variables in multi-level caches, the process suspension wake-up and the process wake-up waiting for scheduling delay .
-
-Process suspension and wakeup This was mentioned in the previous [process scheduling blog](https://maxshuang.github.io/linux-kernel/2024/01/11/Linux-Kernel-Process-Scheduler.html). In addition to being interrupted by asynchronous hardware events to enter the kernel, the kernel is also interrupted by *periodic clock interrupts* (usually 1ms) to perform priority updates and process scheduling in the kernel. Therefore, there may be a delay of ms when a process is woken up after being suspended.
+The overhead of blocking locks includes the synchronization protocol overhead of atomic variables in multi-level caches, process suspension, wake-up, and scheduling delays.
 
 ### Spin Lock
-Spin lock, semantically means waiting for the lock by executing stream polling when lock possession fails. Its classic interface is very similar to mutex lock, because there is not much difference at the semantic level.
+
+A spin lock involves waiting for the lock by polling when lock possession fails. Its classic interface is similar to a mutex lock:
 
 ```
 SpinLock lk;
@@ -208,33 +206,29 @@ lk.lock(); // or lk.tryLock();
 lk.unlock();
 ```
 
-If you understand the implementation mechanism of mutex locks at the Linux kernel level, it is not difficult to understand this. First, the atomic variables need to **reach a consensus**, and then the execution flow that does not hold the lock will not be context-switched, but will **execute some nop instructions** and then check the atomic variables again.
+If you understand mutex locks at the kernel level, spin locks are straightforward. First, atomic variables need to **reach a consensus**, and then the execution flow that does not hold the lock will not be context-switched but will **execute some nop instructions** and check the atomic variables again.
 
-From the implementation mechanism, we can see that spin lock has a *faster scheduling speed*, which may be ns or us level scheduling (related to the process time slice rotation), and does not require sleep waiting for wake-up. Of course, the disadvantage is also obvious, that is, long-term instruction idling will waste CPU instruction cycles. Its usage scenario is that atomic variables are already in caches at all levels, and the protected code area is very short, and concurrency conflicts are not strong, so it is often used in the kernel.
+Spin locks have *faster scheduling speeds*, possibly in the ns or us range, and do not require sleep waiting for wake-up. However, long-term instruction idling wastes CPU cycles. Spin locks are suitable for scenarios where atomic variables are already in caches, the protected code area is short, and concurrency conflicts are minimal, making them common in the kernel.
 
-Here is an interesting thing. I have used user-mode spin lock before, which is actually **encapsulating atomic variables + nop + while operations**. Now I think it may not be *very meaningful* in terms of performance, because the kernel spin lock needs to turn off kernel preemption and shield interrupts to prevent the execution flow from being switched out. User-mode spin locks cannot use kernel-level preemption and other mechanisms, so they cannot avoid being switched out by time-sharing systems. Once the execution flow is switched, there will be at least ms-level scheduling delay.
+User-mode spin locks, which encapsulate atomic variables, nop, and while operations, may not be very meaningful in terms of performance. Kernel spin locks disable kernel preemption and shield interrupts to prevent execution flow switching. User-mode spin locks cannot avoid being switched out by time-sharing systems, leading to ms-level scheduling delays if the execution flow is switched.
 
 ### Condition Variable
-Condition variables are another very important primitive provided by the kernel. Based on this primitive, we can further develop locks with **higher-level semantics**, such as semaphores, read-write locks, and fence latches. The semantics of condition variables are different from the mutex locks mentioned above. Its classic interface is as follows:
+
+Condition variables are another crucial primitive provided by the kernel. They enable the development of locks with **higher-level semantics**, such as semaphores, read-write locks, and fence latches. Unlike mutex locks, condition variables make **waiting, condition checking, and notification explicit**. The classic interface is as follows:
 
 ```
 ConditionVariable cv;
 Lock lk;
 cv.wait(lk, condition);
 ...
-cv.notifyOne(); // cv.notifyAll();
+cv.notifyOne(); // or cv.notifyAll();
 ```
 
-Different from the implicit waiting and waking logic of mutexes, condition variables make **waiting + condition checking + notification explicit**. This means that multiple execution flows call $cv.wait(condition)$ at the same time, explicitly waiting for a certain condition to be met. Multiple execution flows that meet the condition continue to execute, and those that do not meet the condition have to wait. The condition is not judged until the execution flow that has obtained permission **explicitly calls notifyOne()** to notify a waiting execution flow, or **uses notifyAll()** to wake up all waiting flows.
+With condition variables, multiple execution flows can call `cv.wait(condition)` simultaneously, explicitly waiting for a specific condition to be met. When the condition is met, the execution flows continue; otherwise, they wait until `notifyOne()` or `notifyAll()` is called to wake them up.
 
-Compared with the mutex lock, the mutex lock has no conditional judgment, and the unlock operation is equivalent to notifyOne or notifyAll.
+Essentially, a condition variable is a **consensus mechanism combined with condition checking and explicit notification**. The mutex lock provides the consensus part. After acquiring the mutex lock, the condition is checked. If the condition is met, execution continues; if not, the execution flow is added to the waiting queue, the lock is released, and it waits to be awakened by `notifyOne()` or `notifyAll()`.
 
-So **what is a condition variable essentially** ?   
-It is essentially a **consensus + condition check + explicit notification**.
-
-The consensus part is provided by the mutex lock (used with the condition variable). After obtaining the mutex lock, **check whether the condition is met**. If it is met, continue to execute. If not, add the execution flow to the waiting queue, release the lock, and wait to be awakened from the waiting queue by $notifyOne()$ or $notifyAll()$.
-
-Based on custom conditions, we can construct *very rich synchronization semantics*. For example, if the lock check condition is $count>0$, I initialize count to 6, so that when calling $wait()$, as long as the execution flow satisfies $count>0$, it can be executed. This is **the semantics of Semaphore**. The general code implementation is as follows:
+Using custom conditions, we can construct *rich synchronization semantics*. For example, if the lock check condition is `count > 0` and `count` is initialized to 6, then when calling `wait()`, any execution flow that satisfies `count > 0` can proceed. This is the **semantics of a Semaphore**. The general code implementation is as follows:
 
 ```
 int counter = 6;
@@ -245,13 +239,13 @@ void request_resource() {
     std::unique_lock<std::mutex> lock(mtx);
     // wait for counter > 0
     cond_var.wait(lock, []{ return counter > 0; });
-    // get resource，decrease counter
+    // get resource, decrease counter
     --counter;
 }
 
 void release_resource() {
     std::unique_lock<std::mutex> lock(mtx);
-    // release resource，increase counter
+    // release resource, increase counter
     ++counter;
     // notify the waiting thread
     cond_var.notify_one(); // or use notify_all()
@@ -260,7 +254,7 @@ void release_resource() {
 
 ### Semaphore
 
-Semaphore semantically allows multiple execution flows to occupy resources at the same time, and the execution flow that has not obtained the resource needs to wait. Its classic interface is as follows:
+A semaphore allows multiple execution flows to occupy resources simultaneously, and those that cannot obtain the resource must wait. Its classic interface is:
 
 ```
 counting_semaphore semaphore;
@@ -268,25 +262,25 @@ semaphore.acquire();  // or wait()
 semaphore.release();  // or signal()
 ```
 
-This type of lock uses two mechanisms in its implementation:
-1. The atomic variable count = n ensures that there are only n execution flows that can occupy resources, and the behavior of occupying resources will be immediately seen by other concurrent flows.
+Semaphores use two mechanisms:
+1. An atomic variable `count = n` ensures that only `n` execution flows can occupy resources, and this behavior is immediately visible to other concurrent flows.
 2. Execution flows that do not hold resources are suspended.
 
-You may be curious, **why do we need to provide semaphore primitives when we can implement semaphores directly through condition variables?**   
+**Why provide semaphore primitives when semaphores can be implemented using condition variables?**
 
-There are several reasons:  
-1. *The design purposes are different*: condition variables are aimed at synchronization **under complex conditional judgments**, and require mutex locks to protect the condition checks; semaphores are used to control concurrent access to limited resources. Semaphores **essentially only rely on an atomic counter** and do not need to check complex conditions.
-2. *The requirements for locks are different*: condition variables **rely on locks** to make complex conditional judgments safe. Separating the locks allows the use of more flexible lock mechanisms, such as shared locks. Semaphores do not actually require locks, they **only require atomic counters** and kernel wait wake-up mechanism support.
-3. *Different performance and efficiency*: condition variables must be locked each time the condition is checked, which involves switching between user state and kernel state; semaphores do not need this. POSIX semaphores use **atomic counters** in user state. When $counter>0$, they will not switch to kernel state. They will enter kernel state only when $counter==0$ to implement waiting and waking.
+1. *Different design purposes*: Condition variables are for synchronization **under complex conditions** and require mutex locks to protect condition checks. Semaphores control concurrent access to limited resources and **rely only on an atomic counter** without needing complex condition checks.
+2. *Different lock requirements*: Condition variables **rely on locks** for safe condition checks, allowing flexible lock mechanisms like shared locks. Semaphores **only need atomic counters** and kernel wait-wake mechanisms.
+3. *Performance and efficiency*: Condition variables must lock each time the condition is checked, involving user-kernel state switching. Semaphores use **atomic counters** in user state and switch to kernel state only when `counter == 0`.
 
-Therefore, for concurrent access to limited resources, such as the producer-consumer model, **semaphores are more efficient**, while condition variables sacrifice performance to achieve more flexible synchronization strategies.
+For concurrent access to limited resources, such as in the producer-consumer model, **semaphores are more efficient**, while condition variables offer more flexible synchronization strategies at the cost of performance.
 
 ### Advanced Lock
-Let's take a look at some advanced locking mechanisms designed based on synchronization primitives such as atomic locks/condition variables/semaphores.
 
-**Latch**  
+Let's explore advanced locking mechanisms based on synchronization primitives like atomic locks, condition variables, and semaphores.
 
-Latch is another name for fence. Its synchronization semantics vividly describes a synchronization scenario where a concurrent flow A **waits for multiple concurrent flows** B, C, D to reach a synchronization point before executing B, C, D=>A, similar to a fence used to enclose sheep. Its classic interface is as follows:
+#### Latch
+
+A latch, or fence, describes a synchronization scenario where a concurrent flow A **waits for multiple concurrent flows** B, C, and D to reach a synchronization point before executing. Its classic interface is:
 
 ```
 latch lt(5);
@@ -294,7 +288,7 @@ lt.count_down(); // internal --counter;
 lt.wait();       // wait for counter==0
 ```
 
-We can imagine a latch implementation like this, with a counter counter=3, concurrent streams B, C, and D are all waiting for the scenario where $counter>0$, and when they finish, they will $–counter$ and $notifyAll()$. Concurrent stream A is waiting for the scenario where $counter==0$, and it needs to wait for concurrent streams B, C, and D to finish before it can be awakened and executed.
+Imagine a latch implementation with `counter = 3`. Concurrent streams B, C, and D wait for `counter > 0`, decrement the counter, and call `notifyAll()` when finished. Concurrent stream A waits for `counter == 0` and is awakened to execute once B, C, and D are done.
 
 ```
 class latch {
@@ -320,18 +314,19 @@ private:
 };
 ```
 
-### Read-Write Lock
-Read-write lock is a commonly used type of lock to improve read-write concurrency. Semantically, there is no read-read conflict, but there is **read-write/write-read/write-write** conflict. It is suitable for scenarios with more reads than writes.
+#### Read-Write Lock
 
-We can imagine the implementation of the read-write lock like this: there is a $runningReaderCounter$ that maintains the number of readers currently running, a $waitingWriterCounter$ that maintains the number of writers waiting, and an $isWriterRunning$ that maintains whether there is a writer currently running.
-1. The condition for the reader to run is that there is currently no writer running and no waiting writer: ```isWriterRunning==false && waitingWriterCounter==0```.
-2. The condition for the writer to run is that there is neither a running reader nor a running writer: ```isWriterRunning==false && runningReaderCounter==0```.
+A read-write lock is a commonly used synchronization mechanism to improve read-write concurrency. Semantically, there is no conflict between read operations, but there are conflicts between read-write, write-read, and write-write operations. It is suitable for scenarios with more reads than writes.
 
-**Write-priority read-write lock**  
+We can imagine the implementation of a read-write lock like this: there is a `runningReaderCounter` that maintains the number of readers currently running, a `waitingWriterCounter` that maintains the number of writers waiting, and an `isWriterRunning` that maintains whether there is a writer currently running.
+1. The condition for a reader to run is that there is currently no writer running and no waiting writer: `isWriterRunning == false && waitingWriterCounter == 0`.
+2. The condition for a writer to run is that there are neither running readers nor running writers: `isWriterRunning == false && runningReaderCounter == 0`.
 
-The following is a write-priority read-write lock implementation, which means that for the concurrent sequence of request sequence - ```read 0-read 1-write 0-read 2-read 3-write 1```, if write 1 waits before write 0 is finished, write 1 will be scheduled first, and the execution sequence is - ```read 0-read 1-write 0-write 1-read 2-read 3```.
+**Write-Priority Read-Write Lock**
 
-```
+The following is a write-priority read-write lock implementation, which means that for the concurrent sequence of requests - `read 0-read 1-write 0-read 2-read 3-write 1`, if write 1 waits before write 0 is finished, write 1 will be scheduled first, and the execution sequence is - `read 0-read 1-write 0-write 1-read 2-read 3`.
+
+```cpp
 // This implementation is essentially write-priority (with more reads and fewer writes), meaning as long as there is a writer running or waiting, it will block readers. Therefore, we don't maintain `waitingReaders`
 class ReadWriteLock {
 private:
@@ -378,15 +373,15 @@ public:
 };
 ```
 
-**Read-priority read-write lock**  
+**Read-Priority Read-Write Lock**
 
-Let's implement a read-priority read-write lock. In this case, the reader's waiting condition becomes that it can be executed as long as there is no running writer: ```cond.wait(lock, this { return !writerActive; })```. 
+Let's implement a read-priority read-write lock. In this case, the reader's waiting condition becomes that it can be executed as long as there is no running writer: `cond.wait(lock, [this]() { return !writerActive; })`.
 
 For this condition, the most intuitive result is that after the writer finishes running, both the waiting writer and the waiting reader have the opportunity to run. **Once the reader gets the opportunity to run, the waiting writer must wait for all readers to finish running before running**, so we call it *read priority*.
 
-For example, for a concurrent sequence such as the request sequence ```read 0-write 0-read 1-write 1-read 2-read 3-write 2```, its execution sequence may be ```read 0-read 1-read 2-read 3-write 1-write 0-write 2```.
+For example, for a concurrent sequence such as the request sequence `read 0-write 0-read 1-write 1-read 2-read 3-write 2`, its execution sequence may be `read 0-read 1-read 2-read 3-write 1-write 0-write 2`.
 
-```
+```cpp
 class ReadWriteLock {
 private:
     std::mutex mtx;
@@ -433,11 +428,11 @@ public:
 };
 ```
 
-**Fair read-write locks**  
+**Fair Read-Write Locks**
 
 Fair read-write locks balance the ratio of read and write requests, such as using a flipper to **alternately select** read threads and write threads, or putting readers and writers into a FIFO queue in the order of requests, and selecting whether to execute a read thread or a write thread based on the queue head element.
 
-```
+```cpp
 class ReadWriteLock {
 private:
     std::mutex mtx;
@@ -454,7 +449,7 @@ public:
         // Fair scheduling:
         cond.wait(lock, [this]() { return !writerActive && (!preferWriter || waitingWriters == 0); });
         ++readerCount;  // Increment reader count
-        preferWriter=!preferWriter;
+        preferWriter = !preferWriter;
     }
 
     // Reader unlock (exit read mode)
@@ -474,7 +469,7 @@ public:
         cond.wait(lock, [this]() { return !writerActive && preferWriter && readerCount == 0; });
         --waitingWriters;  // Decrement waiting writers as writer is now active
         writerActive = true;
-        preferWriter=!preferWriter;
+        preferWriter = !preferWriter;
     }
 
     // Writer unlock (exit write mode)
@@ -486,9 +481,9 @@ public:
 };
 ```
 
-**Fair read-write locks scheduled in request order**:
+**Fair Read-Write Locks Scheduled in Request Order**
 
-```
+```cpp
 enum class ThreadType { Reader, Writer };
 
 struct ThreadInfo {
@@ -554,24 +549,25 @@ public:
 };
 ```
 
-### Distributed Lock
-Let's continue to look at a more advanced lock - distributed lock. This lock is no longer limited to the Linux kernel and a single machine, but provides a lock service for entities in a distributed environment.
+#### Distributed Lock
 
-Interestingly, sometimes distributed locks can help us see the **semantics of lock primitives**. We said before that locks are actually **a kind of consensus**. For example, atomic variables are implemented as a lock primitive at the kernel level through various complex hardware and software mechanisms .
+Let's explore a more advanced concept: the distributed lock. Unlike traditional locks limited to the Linux kernel and a single machine, distributed locks provide locking services for entities in a distributed environment.
 
-In a distributed environment, the lock primitive becomes clearer, because for entities in a distributed environment, the only way they interact with the lock service is *through network interaction*, that is, under network interaction, as long as the lock service can provide a **consensus**, it will be fine. This consensus can be ```a==2``` or ```set a=1 if a==0```. In a broader sense, for the semantics of mutual exclusion locks, it only needs to ensure that only one entity holds the result of a successful network request at any time.
+Interestingly, distributed locks can help us better understand the **semantics of lock primitives**. Previously, we mentioned that locks are essentially **a form of consensus**. For instance, atomic variables are implemented as lock primitives at the kernel level through various complex hardware and software mechanisms.
 
-This is why high-performance caches such as redis are often used to implement distributed locks. Because its internal execution is single-threaded, as long as the version is maintained as an optimistic lock, the CAS interface can be implemented based on the version, and the lock primitives mentioned above can be implemented naturally .
+In a distributed environment, the lock primitive becomes clearer because entities interact with the lock service *through network interactions*. As long as the lock service can provide a **consensus** under network interactions, it suffices. This consensus can be as simple as ```a==2``` or ```set a=1 if a==0```. Essentially, for mutual exclusion locks, it only needs to ensure that only one entity holds the result of a successful network request at any time.
 
-Aother example is, you can use the database's row lock + where mechanism to implement lock primitives too, such as "update a=1 where a=0", because there is only one updated affected row that is 1. Or you can add a version column to your own records to achieve similar capabilities.
+This is why high-performance caches like Redis are often used to implement distributed locks. Redis operates in a single-threaded manner, and by maintaining a version as an optimistic lock, it can naturally implement the CAS interface and the lock primitives mentioned earlier.
 
-There are also fair distributed locks and unfair distributed locks in the implementation of distributed locks. I am not sure if this is a standard classification. In short:
-1. **Fair distributed lock**: Obtain locks in the order of request, such as the distributed lock implemented by zookeeper/etcd, by queuing in the directory, the first element in the queue is considered to have obtained the distributed lock. By maintaining the session, it is ensured that after the first element in the queue is disconnected, the next element becomes the first element in the queue and obtains the lock.
-2. **Unfair distributed locks**: All entities compete for a certain value through the CAS mechanism. For example, the entity that successfully changes 0 to 1 after performing an auto-increment operation obtains the lock. This competition method depends on the network latency/CPU and other conditions of the entities in the distributed environment. The best one wins, so I call it an unfair distributed lock. This unfair distributed lock is still very advantageous in some scenarios because it is itself a kind of feedback from the real distributed environment. For example, when updating the cache, it is a better choice to let the entity with lower latency at that time obtain the distributed lock and then update the cache.
+Another example is using a database's row lock combined with a where clause to implement lock primitives, such as "update a=1 where a=0". This works because only one updated row will be affected. Alternatively, you can add a version column to your records to achieve similar capabilities.
 
-Let's diverge a little further. How do we implement a distributed write priority lock? If you understand the previous content, then this is just a matter of combining different implementations.
+Distributed locks can be categorized into fair and unfair distributed locks. Although this may not be a standard classification, it helps to understand the differences:
+1. **Fair distributed lock**: Locks are obtained in the order of requests. For example, distributed locks implemented by Zookeeper or etcd use a queuing mechanism. The first element in the queue is considered to have obtained the distributed lock. By maintaining the session, it ensures that if the first element disconnects, the next element in the queue becomes the first and obtains the lock.
+2. **Unfair distributed lock**: All entities compete for a certain value using the CAS mechanism. For instance, the entity that successfully changes 0 to 1 after performing an auto-increment operation obtains the lock. This competition depends on network latency, CPU, and other conditions of the entities in the distributed environment. The best-performing entity wins, making it an unfair distributed lock. This type of lock can be advantageous in certain scenarios because it reflects the real conditions of the distributed environment. For example, when updating the cache, it is better to let the entity with the lowest latency at that moment obtain the distributed lock and update the cache.
 
-### Optimistic Lock
+To further illustrate, how would we implement a distributed write-priority lock? If you understand the previous content, it is simply a matter of combining different implementations.
+
+#### Optimistic Lock
 
 We mentioned optimistic locking before. Pessimistic locking and optimistic locking are often mentioned in the database field. The pessimistic locking mechanism is that the execution flow that has not obtained the lock needs to wait, while the optimistic locking does not wait. It relies on the version mechanism to determine whether the data version has changed during the execution process before the execution ends. If the data version is found to have changed, the entire operation needs to be rolled back and redone, otherwise it can be terminated directly.
 
@@ -580,6 +576,7 @@ Optimistic locking is more lightweight and is usually implemented using some kin
 This version mechanism has more extensive and profound applications. For example, Google Spanner's percolator , which is used to implement distributed transactions , uses the version mechanism on the primary key to lock multiple records in a transaction range. Another example is that in the Paxos prepare-accept phase, the highest proposal number is used to reject other proposals, which is itself a locking mechanism.
 
 ## Conclusion
+
 The interesting thing about discussing "Lock and Synchronization" is that you start to sense the idea of "Primitives". One thing that really impressed me was during an internal session at Tencent, where the presenter mentioned that much of the work in software development involves designing proper primitives as you gain experience. At the time, I didn't fully grasp the significance, but now, reflecting on my career, it makes perfect sense.
 
 Starting with locks, we first implement a basic primitive—an "Atomic lock". This primitive can then be expanded into various specialized locks for different scenarios. As you connect all these related concepts, it becomes quite enlightening.
