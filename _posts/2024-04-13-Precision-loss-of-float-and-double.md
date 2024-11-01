@@ -5,47 +5,47 @@ subtitle: picture from https://www.pexels.com/search/wild%20animals/
 author: maxshuang
 categories: Program
 banner:
-  image: /assets/images/post/programming-float/pexels-monicore-134058.jpg
-  opacity: 0.618
-  background: "#000"
-  height: "55vh"
-  min_height: "38vh"
-  heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
-  subheading_style: "color: gold"
+    image: /assets/images/post/programming-float/pexels-monicore-134058.jpg
+    opacity: 0.618
+    background: "#000"
+    height: "55vh"
+    min_height: "38vh"
+    heading_style: "font-size: 3.00em; font-weight: bold; text-decoration: underline"
+    subheading_style: "color: gold"
 tags: Program
 ---
 
 ## Background
 
-今天讲个轻松一点的话题，关于浮点型数的精度丢失问题，它源于我对**3 个问题**的疑问：
-1. 二进制表示十进制小数的天然精度丢失，比如十进制 0.1 对应的二进制是 0.00(1100)(1100)...
-2. 浮点数本身对小数点后可表示位数有限制，导致对小数点后数据本身就会截断，比如 1.123456789 可能就只能表示成 1.123457
-3. 这个比较诡异，float 最大可表示范围可以达到 $2^{127}$，但是实际上当一个整数大于 $2^{24}$ 的时候，还是出现了*整数精度丢失问题*，导致一些程序在用 float 解析一些大数时需要使用 *decimal string* 来表示 "100000123"。
+Today, let's discuss a lighter topic about the precision loss of floating-point numbers. This stems from my curiosity about **3 questions**:
+1. The inherent precision loss when representing decimal numbers in binary, such as the decimal 0.1 which corresponds to the binary 0.00(1100)(1100)...
+2. The limitation of floating-point numbers in representing digits after the decimal point, leading to truncation, for example, 1.123456789 might be represented as 1.123457.
+3. The third issue is particularly peculiar: although the maximum range of float can reach $2^{127}$, when an integer exceeds $2^{24}$, there is still an *integer precision loss issue*, causing some programs to use *decimal strings* to represent large numbers like "100000123".
 
-在 [online compiler](https://www.programiz.com/cpp-programming/online-compiler/) 上运行以下测试程序：
+Run the following test program on the [online compiler](https://www.programiz.com/cpp-programming/online-compiler):
 ```
 #include <iostream>
 
 int main() {
-    //1. binary format precision loss
-    float small_ft=0.3;
-    std::cout << "1. original float: 0.3" << std::endl;
-    std::cout << "1. after assigned to float(rounded):" << small_ft << std::endl;
-    std::cout << "1. check equity:" << (small_ft==0.3) << std::endl;
-    
-    //2. significand precision loss
-    float big_sf=1.123456789;
-    std::cout << "2. original float: 1.123456789" << std::endl;
-    std::cout << "2. after assigned to float:" << big_sf << std::endl;
-    
-    //3. big int precision loss in float
-    int big_int=100000123;
-    std::cout << "3. original big int:" << big_int << std::endl;
-    
-    float ft_int=big_int;
-    std::cout << "3. after assigned to float:" << ft_int << std::endl;
-    std::cout << "3. after assigned to float(int):" << (int)ft_int << std::endl;
-    return 0;
+        //1. binary format precision loss
+        float small_ft=0.3;
+        std::cout << "1. original float: 0.3" << std::endl;
+        std::cout << "1. after assigned to float(rounded):" << small_ft << std::endl;
+        std::cout << "1. check equity:" << (small_ft==0.3) << std::endl;
+        
+        //2. significand precision loss
+        float big_sf=1.123456789;
+        std::cout << "2. original float: 1.123456789" << std::endl;
+        std::cout << "2. after assigned to float:" << big_sf << std::endl;
+        
+        //3. big int precision loss in float
+        int big_int=100000123;
+        std::cout << "3. original big int:" << big_int << std::endl;
+        
+        float ft_int=big_int;
+        std::cout << "3. after assigned to float:" << ft_int << std::endl;
+        std::cout << "3. after assigned to float(int):" << (int)ft_int << std::endl;
+        return 0;
 }
 ```
 ```
@@ -60,61 +60,67 @@ Result:
 3. after assigned to float(int):100000120
 ```
 
-如果说 1,2 都是符合直觉的，任何表示方式都会有一定的精度限制，那 3 就有点反直觉了，大整数不需要小数点后的精度，并且也没有超过 float 可表示的最大正整数范围，但还是出现了精度丢失，这也**太诡异**了。
+If 1 and 2 are intuitive, as any representation method will have certain precision limitations, then 3 is somewhat counterintuitive. Large integers do not require precision after the decimal point and do not exceed the maximum positive integer range that float can represent, yet there is still a precision loss, which is **quite strange**.
 
-## float 标准
-为了说明这个问题，我们先快速 walk through 下 [float 标准](http://www.dsc.ufcg.edu.br/~cnum/modulos/Modulo2/IEEE754_2008.pdf) 提供的性质。
+## float Standard
+
+To explain this issue, let's quickly walk through the properties provided by the [float standard](http://www.dsc.ufcg.edu.br/~cnum/modulos/Modulo2/IEEE754_2008.pdf).
 ![float standard](/assets/images/post/programming-float/float-format.png)
 
-对于 32 bits float(double 同理)，其中最高 1 bit 表示 $sign$, following 8 bits 表示 $exponent$(base 2), lowest 23 bits 表示 $significand$，也就是我们说的精度。
+For 32-bit float (similarly for double), the highest 1 bit represents the $sign$, the following 8 bits represent the $exponent$ (base 2), and the lowest 23 bits represent the $significand$, which is the precision.
 
-这里需要特别注意的点： *这是科学计数法表示形式*。  
-举个例子(科学计数法表示 base 10)：   
+A key point to note here: *This is a scientific notation representation*. For example (scientific notation in base 10):   
 $0.000123$ => $1.23 * 10^{-4}$
 $22345$ => $2.2345*10^{4}$
 
-对于 float 标准所定义的规则，$exponent$ 部分的 base 是 2, 而 $significand$ 部分是科学计数法表示的小数点后有效位数。这个和我们平时的概念还有点不一样，比如我们会认为 $123.456$ 的 significand 是 "456", 但是对于 float 而言它是 "23456"。
+According to the float standard, the $exponent$ part's base is 2, and the $significand$ part represents the significant digits after the decimal point in scientific notation. This is slightly different from our usual concept, where we might think the significand of $123.456$ is "456", but for float, it is "23456".
 
-所以大体上 $123.456$ 表示成 $1.23456 * 10^{2}$ => $-1^{s}* 1.significand * 2^{exponent}$, 这里的 exponent 可以想象将 $123.456$ 一直除以 2, 直到整数部分为 1。  
-=>  $-1^{0}* 1.929 * 2^{6}$，$exponent$=6, $significand$=0.929。
+So roughly, $123.456$ is represented as:  
+$1.23456 * 10^{2}$ => $-1^{s} * 1.significand * 2^{exponent}$  
+where the exponent can be imagined as dividing $123.456$ by 2 repeatedly until the integer part is 1.  
+=>  $-1^{0}* 1.929 * 2^{6}$, $exponent$=6, $significand$=0.929.
 
-实际的 float 还不是这样的，有一些细节：
-1. $exponent$ 有 -127 bias， 也就是原来的 8 bits 表示 [0, 255), 而实际上需要计算 $exponent-127$, 表示 [-127, 128)。
-2. float 标准预留了 $exponent$ 为全 0 值和全 1 值，分别表示 *小到无法表示的值* infinity 和 *大到无法表示的值* NaN。
-3. 实际的 exponent 可表示范围为 [-126, 127)，-127(0-127) 和 128(255-127) 被预留成其他含义了。
+The actual float representation is not exactly like this, with some details:
+1. The $exponent$ has a -127 bias, meaning the original 8 bits represent [0, 255), but actually need to calculate $exponent-127$, representing [-127, 128).
+2. The float standard reserves the $exponent$ values of all 0s and all 1s to represent *values too small to represent* infinity and *values too large to represent* NaN.
+3. The actual exponent range is [-126, 127), with -127 (0-127) and 128 (255-127) reserved for other meanings.
 
-所以实际的 float 表示形式为 $-1^{s}* 1.significand * 2^{exponent-127}$。
-从这个形式上看，float 的可表示范围会在 $[-2^{127}, 2^{127}]$ 附近， 而可表示的最小精度在 $2^{-126}$ 左右，更小精度值就无法表示了。
+So the actual float representation is:  
+ $-1^{s}* 1.significand * 2^{exponent-127}$.
 
-## 为什么会出现精度丢失
-有了上面的 float 标准做铺垫，我们来看看 1,2,3 不同场景下的精度丢失。
+From this form, the representable range of float is around $[-2^{127}, 2^{127}]$, and the minimum precision it can represent is around $2^{-126}$, with smaller precision values being unrepresentable.
 
-**场景1：float 表示 0.3**  
-这个场景是*二进制天然无法表示某些 10 进制小数*。
+## Why Precision Loss Occurs
 
-0.3 转成十进制科学计数法为 $3 * 10^{-1}$, 转成二进制科学计数法 $1.2 * 2^{-2}$  
-=> $sign$=0, $exponent$=125(-2+127),   $significand=b00110011 001100110011010$  
-其中 significand 是对 0011 无限循环模式 round up 到 23 bits。
+With the float standard as a foundation, let's look at the precision loss in scenarios 1, 2, and 3.
 
-我们验证下：
+**Scenario 1: float representing 0.3**  
+
+This scenario is about the *inherent inability of binary to represent certain decimal fractions*.
+
+0.3 in decimal scientific notation is $3 * 10^{-1}$, converted to binary scientific notation is: $1.2 * 2^{-2}$    
+=> $sign$=0, $exponent$=125(-2+127),   $significand=b00110011 001100110011010$    
+where the significand is rounded up to 23 bits from the repeating pattern 0011.
+
+Let's verify:
 ```
 #include <iostream>
 
 int main() {
-    union {
-       float input;
-       int output;
-    }u;
-    u.input=0.3;
-    std::cout << "sign:" << (u.output >> 31) << std::endl;
-    std::cout << "exponent:" << (u.output >> 23) << std::endl;
-    
-    int tmp= (u.output & 0x7FFFFF);
-    std::cout << "significand:";
-    for(int t=22; t>=0; --t) {
-        std::cout << ((tmp>>t)&0x1);
-    }
-    std::cout << std::endl;
+        union {
+             float input;
+             int output;
+        }u;
+        u.input=0.3;
+        std::cout << "sign:" << (u.output >> 31) << std::endl;
+        std::cout << "exponent:" << (u.output >> 23) << std::endl;
+        
+        int tmp= (u.output & 0x7FFFFF);
+        std::cout << "significand:";
+        for(int t=22; t>=0; --t) {
+                std::cout << ((tmp>>t)&0x1);
+        }
+        std::cout << std::endl;
 }
 ```
 ```
@@ -124,31 +130,33 @@ exponent:125
 significand:00110011001100110011010
 ```
 
-**场景2：float 表示 1.123456789**  
-这个场景是 23 bits significand 决定它能表达的最大精度是有限的，$2^{23}\approx8000000$，所以它可以表达大概 6～7 位小数。
+**Scenario 2: float representing 1.123456789**  
 
-1.123456789 表达成二进制科学计数法 $1.123456789 * 2^{0}$  
-=> $sign$=0, $exponent$=127(0+127), $significand=b00110011 001100110011010\approx1.12346$
+This scenario is about the 23-bit significand determining the maximum precision it can represent, which is around $2^{23}\approx8000000$, so it can represent about 6-7 decimal places.
 
-我们验证下：
+1.123456789 in binary scientific notation is $1.123456789 * 2^{0}$  
+=> $sign$=0, $exponent$=127(0+127),   
+=> $significand=b00110011 001100110011010\approx1.12346$
+
+Let's verify:
 ```
 #include <iostream>
 
 int main() {
-    union {
-       float input;
-       int output;
-    }u;
-    u.input=0.3;
-    std::cout << "sign:" << (u.output >> 31) << std::endl;
-    std::cout << "exponent:" << (u.output >> 23) << std::endl;
-    
-    int tmp= (u.output & 0x7FFFFF);
-    std::cout << "significand:";
-    for(int t=22; t>=0; --t) {
-        std::cout << ((tmp>>t)&0x1);
-    }
-    std::cout << std::endl;
+        union {
+             float input;
+             int output;
+        }u;
+        u.input=0.3;
+        std::cout << "sign:" << (u.output >> 31) << std::endl;
+        std::cout << "exponent:" << (u.output >> 23) << std::endl;
+        
+        int tmp= (u.output & 0x7FFFFF);
+        std::cout << "significand:";
+        for(int t=22; t>=0; --t) {
+                std::cout << ((tmp>>t)&0x1);
+        }
+        std::cout << std::endl;
 }
 ```
 ```
@@ -162,38 +170,38 @@ significand(int):1035631
 significand:00011111100110101101111
 ```
 
-**场景3：float 表示 16800013**  
-场景 3 是比较 counterintuitive 的场景，float 标准可以表示 $[-2^{127}, 2^{127}]$ 范围的浮点数，但不代表在可表示范围内都不会发生精度丢失。
+**Scenario 3: float representing 16800013**  
+Scenario 3 is a more counterintuitive scenario. The float standard can represent floating-point numbers in the range of $[-2^{127}, 2^{127}]$, but this does not mean that precision loss will not occur within this range.
 
-考虑 16800013 的十进制科学计数法为 $1.6800013 * 10^{7}$, 由于 float 的二进制表示法中 significand 只能表示 6～7 位十进制小数点后的精度，所以 0.6800013 一定是会被截断的。
+Consider the decimal scientific notation of 16800013 as $1.6800013 * 10^{7}$, and since the significand in the binary representation of float can only represent 6-7 decimal places, 0.6800013 will be truncated.
 
-让我们直接切换成二进制科学计数法表示 $1.001358807086*2^{24}$, 这里的 0.001358807086 是我们截断之后的十进制小数，用 23 bits 的二进制表示后会进一步截断，所以最后用 float 表示出来的整数就是截断之后的。
+Let's directly switch to binary scientific notation $1.001358807086*2^{24}$, where 0.001358807086 is the truncated decimal fraction. After representing it with 23 bits in binary, it will be further truncated, so the integer represented by float will be the truncated version.
 
-我们验证下：
+Let's verify:
 
 ```
 #include <iostream>
 
 int main() {
-    union {
-       float input;
-       int output;
-    }u;
-    u.input=16800013;
-    
-    std::cout << "original float: 16800013" << std::endl;
-    std::cout << "after assigned to float(rounded):" << u.input << std::endl << std::endl;
-    std::cout << "float to int:" << (int)u.input << std::endl << std::endl;
-    
-    std::cout << "sign:" << (u.output >> 31) << std::endl;
-    std::cout << "exponent:" << (u.output >> 23) << std::endl;
-    
-    int tmp= (u.output & 0x7FFFFF);
-    std::cout << "significand:";
-    for(int t=22; t>=0; --t) {
-        std::cout << ((tmp>>t)&0x1);
-    }
-    std::cout << std::endl;
+        union {
+             float input;
+             int output;
+        }u;
+        u.input=16800013;
+        
+        std::cout << "original float: 16800013" << std::endl;
+        std::cout << "after assigned to float(rounded):" << u.input << std::endl << std::endl;
+        std::cout << "float to int:" << (int)u.input << std::endl << std::endl;
+        
+        std::cout << "sign:" << (u.output >> 31) << std::endl;
+        std::cout << "exponent:" << (u.output >> 23) << std::endl;
+        
+        int tmp= (u.output & 0x7FFFFF);
+        std::cout << "significand:";
+        for(int t=22; t>=0; --t) {
+                std::cout << ((tmp>>t)&0x1);
+        }
+        std::cout << std::endl;
 }
 ```
 ```
@@ -206,11 +214,11 @@ exponent:151
 significand:00000000010110010000110
 ```
 
-从结果可以看出，将 16800013 赋值给 float 之后，再转换成 int 就会变成 16800012。
+From the results, we can see that after assigning 16800013 to float, converting it back to int results in 16800012.
 
-我特意选择了 16800013， 因为它是比 $2^{24}$ 稍大的数，而 24 bits 表示的是 23 bits significand + 1 bit of leading 1, 所以 $[-2^{24}, 2^{24}]$ 这个范围内的整数都可以完整表示。
+I specifically chose 16800013 because it is slightly larger than $2^{24}$, and 24 bits represent 23 bits significand + 1 bit of leading 1, so integers within the range of $[-2^{24}, 2^{24}]$ can be fully represented.
 
-大于 $2^{24}$，则其二进制表示的 bits 数就会大于 24, 将小数点移动到 leading 1 之后，之后的 bits 数大于 23, 就会被 significand 截断。
+For numbers larger than $2^{24}$, their binary representation will have more than 24 bits. When the decimal point is moved to the leading 1, the bits after that exceed 23 and will be truncated by the significand.
 ```
 Decimal: 16800013
 Hex:     0x100590D
@@ -218,16 +226,16 @@ Binary:  0001 [0000 0000 0101 1001 0000 1101]
 float:      1.[0000 0000 0101 1001 0000 110] * 2^(24) 
 ```
 
-## double 标准
-双精度的 double 和 float 分析流程是一样的，可以参照上面的分析，其标准为([origin](https://www.geeksforgeeks.org/difference-between-float-and-double/))：  
+## double Standard
+The analysis process for double precision is the same as for float. You can refer to the above analysis. The standard is [here](https://www.geeksforgeeks.org/difference-between-float-and-double/):  
 ![double-standard](/assets/images/post/programming-float/double-standard.png)
 
-在 double 的标准下，由于其 significand 最多可以有 63 bit，所以对于正整数而言，在大概 $10^{18}$ 之内都不会出现截断的问题。这也是 lua 可以使用 number 类型表示整数和浮点数的原因。(from Programming in Lua)
+Under the double standard, since the significand can have up to 63 bits, for positive integers, there will be no truncation issues within approximately $10^{18}$. This is also why Lua can use the number type to represent both integers and floating-point numbers (from [Programming in Lua](https://www.lua.org/pil/)).
  ![lua-number](/assets/images/post/programming-float/lua-number.png)
 
 ## Conclusion
-float 和 double 是编程语言非常常见的内置类型，但是它的编码方式决定了它的含义没有整型和字符串类型那样直观。
+Float and double are very common built-in types in programming languages, but their encoding method makes their meaning less intuitive than integer and string types.
 
-在大部分场景中我们都不会碰到和关注 float 精度丢失的问题，因为 float 本身的 round up 可能掩盖了问题，但在一些计费和严重依赖科学计算的领域，就需要特别关注浮点型精度丢失的各种场景。
+In most scenarios, we do not encounter or pay attention to the precision loss of float because the rounding up of float itself may mask the issue. However, in fields like billing and scientific computing, where precision is crucial, it is essential to pay special attention to the various scenarios of floating-point precision loss.
 
-本文重点解释了 float 在表示特殊小数，长有效位数和大整数场景出现精度丢失的原因。
+This article focuses on explaining the reasons for precision loss in float when representing special decimals, long significant digits, and large integers.
