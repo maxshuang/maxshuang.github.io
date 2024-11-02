@@ -15,197 +15,191 @@ banner:
 tags: Distributed-System TiDB TiCDC Online-DDL
 ---
 
-> [TiCDC](https://github.com/pingcap/tiflow) 作为 [TiDB](https://github.com/pingcap/tidb) 的数据同步组件，负责直接从 [TiKV](https://github.com/tikv/tikv) 
-> 感知数据变更同步到下游。其中比较核心的问题是数据解析正确性问题，具体而言就是如何使用正确的 schema 解析 TiKV 传递过来的 Key-Value 数据，从而还原成正确的 
-> SQL 或者其他下游支持的形式。本文主要通过对 TiDB Online DDL 机制原理和实现的分析，引出对当前 TiCDC 数据解析实现的讨论。 
-> 
+> [TiCDC](https://github.com/pingcap/tiflow) is a change data capture tool for [TiDB](https://github.com/pingcap/tidb), an open-source, distributed SQL database. TiCDC captures data changes from [TiKV](https://github.com/tikv/tikv) and synchronizes them downstream. This article discusses TiCDC's data parsing implementation and the TiDB Online DDL mechanism.
 
-## 背景和问题
-数据同步组件是数据库生态中不可或缺的生态工具，比较知名的开源单机数据库 MySQL 就将数据同步作为 Server 能力的一部分，并基于 MySQL binlog 实现异步/半同步/同步的主从复制。
-由于 MySQL 悲观事务模型和表元数据锁的存在，我们总是可以认为 MySQL binlog 中存在因果关系的 data 和 schema 符合时间先后顺序的，即:
+## Background and Problem
+
+Data replication components are indispensable tools in the database ecosystem. For example, the well-known open-source single-node database MySQL includes data replication as part of its server capabilities and implements asynchronous/semi-synchronous/synchronous master-slave replication based on MySQL binlog. Due to MySQL's pessimistic transaction model and table metadata locks, we can always assume that the data and schema with causal relationships in the MySQL binlog follow the chronological order, i.e.:
+
 ```
 New data commitTs > New schema commitTs
 ```
-但是对于 TiDB 这种存储计算分离的架构而言，schema 的变更在存储层持久化，服务层节点作为多缓存节点，**总是存在**一个 schema 状态不一致的时间段。为了保证数据一致性
-和实现在线 DDL 变更，现有的分布式数据库大都采用或者借鉴了[Online, Asynchronous Schema Change in F1](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf) 机制。所以我们要回答的问题变成了，
-在 TiDB Online DDL 机制下，TiCDC 如何正确处理 data 和 schema 的对应关系，存在因果关系的 data 和 schema 是否仍然满足：
+
+However, for TiDB's storage-compute separation architecture, schema changes are persisted at the storage layer, and service layer nodes act as multiple cache nodes, **always** having a period of schema inconsistency. To ensure data consistency and achieve online DDL changes, existing distributed databases mostly adopt or refer to the [Online, Asynchronous Schema Change in F1](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf) mechanism. Therefore, the question we need to answer becomes, under the TiDB Online DDL mechanism, how does TiCDC correctly handle the correspondence between data and schema, and whether the data and schema with causal relationships still satisfy:
+
 ```
 New data commitTs > New schema commitTs
 ```
-为了回答这个问题，我们首先需要先阐述原始的 F1 Online Schema Change 机制的核心原理，然后描述当前 TiDB Online DDL 实现，最后我们讨论在当前 TiCDC实现下，data 和 schema 的
-处理关系和可能出现的不同的异常场景。
 
-## F1 Online Schema Change 
-F1 Online Schema Change 机制要解决的核心问题是，在单存储多缓存节点的架构下，如何实现满足数据一致性的 Online Schema 变更，如图1所示：
+To answer this question, we first need to explain the core principles of the original F1 Online Schema Change mechanism, then describe the current TiDB Online DDL implementation, and finally discuss the handling relationship between data and schema in the current TiCDC implementation and the different exceptional scenarios that may arise.
 
-<img src="/assets/images/post/onlineddl/image13.png" alt="architecture" style="height: 350px; width:430px;"/>
-图1: 单存储多缓存节点的架构下的 schema 变更
+## F1 Online Schema Change
 
-这里原始论文定义数据不一致问题为**数据多余(orphan data anomaly)**和**数据缺失(integrity anomaly)**，Schema 变更结束后出现数据多余和数据缺失我们就认为数据不一致了。
-这类系统的 schema 变更问题特点可以总结成以下 3 点：
-1. 一份 schema 存储，多份 schema 缓存
-2. 部分 new schema 和 old schema 无法共存
-3. 直接从 old schema 变更到 new schema 时，总是存在一个时间区间两者同时存在
+The core problem that the F1 Online Schema Change mechanism aims to solve is how to achieve online schema changes that ensure data consistency in a single-storage, multi-cache node architecture, as shown in Figure 1:
 
-* 特点 1 和特点 3 是系统架构导致的，比较容易理解。特点2的一个典型例子是 add index，加载了 new schema 的服务层节点插入数据时会同时插入索引，而加载了 old schema 的
-服务层节点执行删除操作只会删除数据，导致出现了没有指向的索引, 出现数据多余。
-* Schema 变更问题的特点 2 和特点 3 看起来是互相矛盾的死结，new schema 和 old schema 无法共存，但又必然共存。而 F1 Online Schema 机制提供的解决方案也很巧妙，改变不了结果就**改变条件**。
-所以该论文的解决思路上主要有2点，如图 2 所示：
+<img src="/assets/images/post/onlineddl/image13.png" alt="Diagram showing schema changes in a single-storage, multi-cache node architecture with multiple cache nodes interacting with a single storage node" style="height: 350px; width:430px;"/>  
+Figure 1: Schema changes in a single-storage, multi-cache node architecture
 
-![F1-online-ddl](/assets/images/post/onlineddl/image11.png "F1-online-ddl")
-图2: F1 Online DDL 解决方案
+The original paper defines data inconsistency issues as **orphan data anomaly** and **integrity anomaly**. If orphan data or integrity anomalies appear after schema changes, we consider the data inconsistent. The characteristics of schema change issues in such systems can be summarized into the following three points:
+1. One schema storage, multiple schema caches
+2. Some new schemas and old schemas cannot coexist
+3. When directly changing from the old schema to the new schema, there is always a time period when both exist simultaneously
 
-1. **引入共存的中间 schema 状态**，比如 `S1->S2’->S2`, S1 和 S2’ 可以共存，S2’ 和 S2 可以共存；
-2. **引入确定的隔离时间区间**，保证无法共存的 schema 不会同时出现；
-具体来讲：
+* Characteristics 1 and 3 are caused by the system architecture and are relatively easy to understand. A typical example of characteristic 2 is adding an index. When a service layer node with the new schema inserts data, it will also insert the index, while a service layer node with the old schema will only delete data during deletion, leading to orphan indexes and data redundancy.
+* Characteristics 2 and 3 of schema change issues seem to be a contradictory deadlock: the new schema and old schema cannot coexist, but they must coexist. The F1 Online Schema mechanism provides a clever solution by **changing the conditions** since the result cannot be changed. The main ideas of this solution are shown in Figure 2:
 
-* **引入共存的中间 schema 状态**
-因为直接从 schema S1 变更到 schema S2 会导致数据不一致的问题，所以引入了 delete-only 和 write-only 中间状态，从 `S1 -> S2` 过程变成 `S1 -> S2+delete-only -> S2+write-only -> S2 `过程，
-同时使用 lease 机制保证同时最多有2个状态共存。这时只需要证明每相临的两个状态都是可以共存的，保证数据一致性，就能推导出 S1 到 S2 变更过程中数据是一致的。
-* **引入确定的隔离时间区间**
-定义 schema lease，超过 lease 时长后节点需要重新加载 schema，加载时超过 lease 之后没法获取 new schema 的节点直接下线，不提供服务。所以可以明确定义2倍 lease 时间之后，
-所有节点都会更新到下一个的 schema。
+![Diagram showing the F1 Online DDL solution with intermediate schema states](/assets/images/post/onlineddl/image11.png "F1-online-ddl")  
+Figure 2: F1 Online DDL solution
 
-### 引入共存的中间状态
-我们需要引入什么样的中间状态呢？那要看我们需要解决什么问题。这里我们仍然使用 add index 这个 DDL 作为例子，其他 DDL 细节可以查阅 Online, Asynchronous Schema Change in F1。
+1. **Introduce intermediate schema states that can coexist**, such as `S1->S2'->S2`, where S1 and S2' can coexist, and S2' and S2 can coexist;
+2. **Introduce a definite isolation time interval** to ensure that schemas that cannot coexist do not appear simultaneously;
+Specifically:
 
-#### Delete-only 状态
-我们可以看到 old schema 是无法看到索引信息的，所以会导致出现删除数据，遗留没有指向的索引这种数据多余的异常场景，所以我们要引入的第一个中间状态是 delete-only 状态，
-赋予 schema 删除索引的能力。在delete-only 状态下，schema 只能在 delete 操作的时候对索引进行删除，在 insert/select 操作的时候无法操作索引，如图3 所示：
+* **Introduce intermediate schema states that can coexist**
+Since directly changing from schema S1 to schema S2 causes data inconsistency issues, intermediate states like delete-only and write-only are introduced, changing the process from `S1 -> S2` to `S1 -> S2+delete-only -> S2+write-only -> S2`. The lease mechanism ensures that at most two states coexist simultaneously. By proving that each pair of adjacent states can coexist and ensure data consistency, we can deduce that the data remains consistent throughout the transition from S1 to S2.
+* **Introduce a definite isolation time interval**
+Define schema lease, and after the lease duration, nodes need to reload the schema. If nodes cannot obtain the new schema after the lease duration, they go offline and stop providing services. This allows us to define a clear time boundary: after 2*lease duration, all nodes will update to the next schema.
 
-<img src="/assets/images/post/onlineddl/image7.png" alt="delete-only" style="height: 300px; width:450px;"/>
-图3: 引入 delete-only 中间状态
+### Introducing Coexisting Intermediate States
 
-原始论文对于 delete-only 的定义如下：
+What kind of intermediate states do we need to introduce? That depends on the problems we need to solve. Here, we still use the add index DDL as an example; details of other DDLs can be found in the Online, Asynchronous Schema Change in F1 paper.
+
+#### Delete-only State
+
+We can see that the old schema cannot see the index information, which leads to the scenario where data is deleted, leaving behind orphan indexes. Therefore, the first intermediate state we need to introduce is the delete-only state, which gives the schema the ability to delete indexes. In the delete-only state, the schema can only delete indexes during delete operations and cannot operate on indexes during insert/select operations, as shown in Figure 3:
+
+<img src="/assets/images/post/onlineddl/image7.png" alt="Diagram showing the delete-only intermediate state where the schema can only delete indexes during delete operations and cannot operate on indexes during insert/select operations" style="height: 300px; width:450px;"/>  
+Figure 3: Introducing the delete-only intermediate state
+
+The original paper defines delete-only as follows:
+
 ![delete-only-definition](/assets/images/post/onlineddl/image6.png "delete-only-definition")
 
-假设我们已经引入了明确的隔离时间区间（下一个小节会细讲），能保证同一时刻最多只出现 2 个 schema 状态。所以当我们引入 delete-only 状态之后，需要考虑的场景就变成:
+Assuming we have introduced a definite isolation time interval (which will be detailed in the next section), ensuring that at most two schema states appear simultaneously. So, after introducing the delete-only state, the scenarios we need to consider become:
+
 ```
 1. old schema + new schema(delete-only) 
 2. new schema(delete-only)  + new schema
 ```
 
-* 对于场景1，所有的服务层节点要么处于 old schema 状态，要么处于 new schema(delete-only) 状态。由于 index 只能在 delete 的时候被操作，所以根本没有 index 生成，
-就不会出现前面说的遗留没有指向的索引问题，也不会有数据缺失问题，此时数据是一致的。我们可以说 old schema 和 new schema(delete-only) 是可以共存的。
-* 对于场景2，所有的服务层节点要么处于 new schema(delete-only) 状态，要么处于 new schema 状态。处于 new schema 状态的节点可以正常插入删除数据和索引，处于 new schema( delete-only)  
-状态的节点只能插入数据，但是可以删除数据和索引，此时存在部分数据缺少索引问题，数据是不一致的。
+* For scenario 1, all service layer nodes are either in the old schema state or in the new schema(delete-only) state. Since the index can only be operated on during delete operations, no index is generated, avoiding the issue of orphan indexes and ensuring data consistency. We can say that the old schema and new schema(delete-only) can coexist.
+* For scenario 2, all service layer nodes are either in the new schema(delete-only) state or in the new schema state. Nodes in the new schema state can normally insert and delete data and indexes, while nodes in the new schema(delete-only) state can only insert data but can delete data and indexes. This results in some data missing indexes, leading to data inconsistency.
 
-引入 delete-only 状态之后，已经解决了之前提到的索引多余的问题，但是可以发现，处于 new schema(delete-only)  状态的节点只能插入数据，导致新插入的数据和存量历史数据都缺少索引信息，仍然存在数据缺失的数据不一致问题。
+Introducing the delete-only state solves the issue of orphan indexes, but nodes in the new schema(delete-only) state can only insert data, leading to new data and historical data missing index information, resulting in data inconsistency.
 
-#### Write-only 状态
-在场景 2 中我们可以看到，对于 add index 这种场景，处于 new schema(delete-only)  状态节点插入的数据和存量数据都存在索引缺失的问题。而存量数据本身数量是确定且有限的，总可以在有限的时间内根据数据生成索引，但是 new insert 的数据却可能随时间不断增加。为了解决这个数据缺失的问题，我们还需要引入第二个中间状态 write-only 状态，赋予 schema  insert/delete 索引的能力。处于 write-only 状态的节点可以 insert/delete/update 索引，但是 select 无法看到索引，如图4所示：
+#### Write-only State
 
-<img src="/assets/images/post/onlineddl/image10.png" alt="write-only" style="height: 300px; width:450px;"/>
-图4: 引入 write-only 状态
+In scenario 2, we see that for scenarios like add index, nodes in the new schema(delete-only) state have missing indexes for new and historical data. Historical data is finite and can be indexed within a limited time, but new data may increase over time. To solve this issue, we need to introduce a second intermediate state, the write-only state, which gives the schema the ability to insert/delete indexes. Nodes in the write-only state can insert/delete/update indexes but cannot see indexes during select operations, as shown in Figure 4:
 
-原始论文中对于 write-only 状态的定义如下：
-![write-only-definition](/assets/images/post/onlineddl/image1.png "write-only-defintion")
+<img src="/assets/images/post/onlineddl/image10.png" alt="Diagram showing the write-only intermediate state where nodes can insert, delete, and update indexes but cannot see indexes during select operations in the F1 Online Schema Change mechanism" style="height: 300px; width:450px;"/>  
+Figure 4: Introducing the write-only state
 
-引入 write-only 状态之后，上述的场景 2 被切分成了场景 2‘ 和场景 3:
+The original paper defines write-only as follows:  
+![Definition of write-only state in F1 Online Schema Change mechanism](/assets/images/post/onlineddl/image1.png "write-only-definition")
+
+After introducing the write-only state, scenario 2 is split into scenario 2' and scenario 3:
+
 ```
 2': new schema(delete-only)  + new schema(write-only)
 3:  new schema(write-only) + new schema
 ```
-* 对于场景2'，所有的服务层节点要么处于 new schema(delete-only)  状态，要么处于 new schema(write-only) 。处于 new schema(delete-only)  状态的服务层节点只能插入数据，
-但是可以删除数据和索引，处于 new schema(write-only)  可以正常插入和删除数据和索引。此时仍然存在索引缺失的问题，但是由于 delete-only 和 write-only 状态下，索引对于用户都是不可见的，
-所以在用户的视角上，只存在完整的数据，不存在任何索引，所以内部的索引缺失对用户而言还是满足数据一致性的。
-* 对于场景3，所有的服务层节点要么处于 new schema(write-only)  状态，要么处于 new schema。此时 new insert 的数据都能正常维护索引，而存量历史数据仍然存在缺失索引的问题。
-但是存量历史数据是确定且有限的，我们只需要在所有节点过渡到 write-only 之后，进行历史数据索引补全，再过渡到 new schema 状态，就可以保证数据和索引都是完整的。
-此时处于 write-only 状态的节点只能看到完整的数据，而 new schema 状态的节点能看到完整的数据和索引，所以对于用户而言数据都是一致的。
 
-#### 小节总结
-通过上面对 delete-only 和 write-only 这两个中间状态的表述，我们可以看到，在 F1 Online DDL 流程中，原来的单步 schema 变更被两个中间状态分隔开了。每两个状态之间都是可以共存的，
-每次状态变更都能保证数据一致性，全流程的数据变更也能保证数据一致性。
+* For scenario 2', all service layer nodes are either in the new schema(delete-only) state or in the new schema(write-only) state. Nodes in the new schema(delete-only) state can only insert data but can delete data and indexes, while nodes in the new schema(write-only) state can normally insert and delete data and indexes. Although there are still missing indexes, since indexes are invisible to users in both delete-only and write-only states, users only see complete data, ensuring data consistency.
+* For scenario 3, all service layer nodes are either in the new schema(write-only) state or in the new schema state. New data can maintain indexes normally, while historical data still has missing indexes. Since historical data is finite, we can complete the index for historical data after all nodes transition to the write-only state and then transition to the new schema state, ensuring complete data and indexes. Nodes in the write-only state see complete data, while nodes in the new schema state see complete data and indexes, ensuring data consistency for users.
 
-### 引入确定的隔离时间区间
-为了保证同一时刻最多只能存在 2 种状态，需要约定服务层节点加载 schema 的行为：
-1. 所有的服务层节点在 lease 之后都需要重新加载 schema;
-2. 如果在 lease 时间内无法获取 new schema，则下线拒绝服务;
-通过对服务层节点加载行为的约定，我们可以得到一个确定的时间边界，在 `2*lease` 的时间周期之后，所有正常工作的服务层节点都能从 schema state1 过渡到 schema state2, 如图5 所示：
+#### Section Summary
 
-<img src="/assets/images/post/onlineddl/image12.png" alt="lease" style="height: 350px; width:430px;"/>
-图5: 最多 `2*lease` 时长后所有的节点都能过渡到下一个状态
+Through the description of the delete-only and write-only intermediate states, we see that in the F1 Online DDL process, the original single-step schema change is separated by two intermediate states. Each pair of states can coexist, ensuring data consistency at each state change and throughout the entire process.
 
-### 中间状态可见性
-要正确理解原始论文的中间状态，需要正确理解中间状态的可见性问题。前面小节为了方便我们一直使用 add index 作为例子，然后表述 delete-only 和 write-only 状态下索引对于用户 select 是不可见的，
-但是 write-only 状态下，delete/insert 都是可以操作索引的。如果 DDL 换成 add column，那节点处于 write-only 状态时，用户 insert 显式指定新增列可以执行成功吗？答案是不能。
-总得来说，中间状态的 delete/insert 可见性是**内部可见性**，具体而言是**服务层节点对存储层节点的可见性**，而不是用户可见性。对于 add column 这个 DDL，服务层节点在 delete-only 和 write-only 状态下就能看到 new column，
-但是操作受到不同的限制。对用户而言，只有到 new schema 状态下才能看到 new column，才能显式操作 new column，如图 6 所示：
+### Introducing a Definite Isolation Time Interval
 
-<img src="/assets/images/post/onlineddl/image5.png" alt="visuality" style="height: 300px; width:450px;"/>
-图6: 中间状态可见性
+To ensure that at most two states exist simultaneously, we need to stipulate the behavior of service layer nodes loading schemas:
+1. All service layer nodes need to reload the schema after the lease period;
+2. If they cannot obtain the new schema within the lease period, they go offline and stop providing services;
+By stipulating the behavior of service layer nodes, we can define a clear time boundary: after `2*lease` duration, all normally functioning service layer nodes can transition from schema state1 to schema state2, as shown in Figure 5:
 
-为了清晰表述可见性，我们举个例子，如图 7 所示。原始的表列信息为 `<c1>`, DDL 操作之后表列信息为 `<c1,c2>`。
+<img src="/assets/images/post/onlineddl/image12.png" alt="Diagram showing nodes transitioning to the next schema state within 2*lease duration in the F1 Online Schema Change mechanism, illustrating the process of schema state changes and the time boundary for nodes to update to the next schema state" style="height: 350px; width:430px;"/>  
+Figure 5: All nodes can transition to the next state within `2*lease` duration
 
-![intermediate-state-transition](/assets/images/post/onlineddl/image8.png "intermediate-state-transition")
-![intermediate-state-transition2](/assets/images/post/onlineddl/image3.png "intermediate-state-transition2")
+### Intermediate State Visibility
 
-图7: 中间状态过渡
+To correctly understand the intermediate states in the original paper, we need to understand the visibility of intermediate states. In previous sections, we used add index as an example to describe that indexes are invisible to users in delete-only and write-only states. However, in the write-only state, delete/insert operations can operate on indexes. If the DDL is changed to add column, can users insert explicitly specifying the new column when nodes are in the write-only state? The answer is no. In general, the visibility of delete/insert in intermediate states is **internal visibility**, specifically **service layer nodes' visibility to storage layer nodes**, not user visibility. For add column DDL, service layer nodes can see the new column in delete-only and write-only states but are restricted in operations. Users can only see and operate on the new column in the new schema state, as shown in Figure 6:
 
-* 小图(1) 中，服务层节点已经过渡到了场景1，部分节点处于 old schema 状态，部分节点处于 new schema(delete-only) 状态。此时 c2 对用户是不可见的，不管是 insert<c1,c2> 还是 delete<c1,c2> 的显式指定 c2 都是失败的。
-但是存储层如果存在 [1,xxx] 这样的数据是可以顺利删除的，只能插入 [7] 这样的缺失 c2 的行数据。
-* 小图(2) 中，服务层节点已经过渡到了场景2，部分节点处于 new schema(delete-only) 状态，部分节点处于 new schema(write-only) 状态，此时 c2 对用户仍是不可见的，不管是 insert<c1,c2> 还是 delete<c1,c2> 的显式
-指定 c2 都是失败的。但是处于 write-only 状态的节点，insert [9] 在内部会被默认值填充成	[9,0] 插入存储层。处于 delete-only 状态的节点，delete [9] 会被转成 delete [9,0]。
-* 小图(3) 中，服务层所有节点都过渡到 write-only 之后，c2 对用户仍是不可见的。此时开始进行数据填充，将历史数据中缺失 c2 的行进行填充(实现时可能只是在表的列信息中打上一个标记，取决于具体的实现)。
-* 小图(4) 中，开始过渡到场景3，部分节点处于 new schema(write-only) 状态，部分节点处于 new schema 状态。处于 new schema(write-only) 状态的节点，c2 对用户仍是不可见的。处于 new schema 状态的节点，
-c2 对用户可见。此时连接在不同服务层节点上的用户，可以看到不同的的 select 结果，不过底层的数据是完整且一致的。
+<img src="/assets/images/post/onlineddl/image5.png" alt="Diagram showing the visibility of intermediate states during schema changes in the F1 Online Schema Change mechanism, illustrating how service layer nodes' visibility to storage layer nodes changes during schema transitions" style="height: 300px; width:450px;"/>  
+Figure 6: Intermediate state visibility
 
-#### 小节总结
-上面我们通过 3 个小节对 F1 online Schema 机制进行了简要描述。原来单步 schema 变更被拆解成了多个中间变更流程，从而保证数据一致性的前提下实现了在线 DDL 变更。
-对于 add index 或者 add column DDL 是上述的状态变更，对于 drop index 或者 drop column 则是完全相反的过程。比如 drop column 在 write-only 阶段及之后对用户都不可见了，内部可以正确 insert/delete，可见性和之前的论述完全一样。
+To clearly describe visibility, let's use an example, as shown in Figure 7. The original table columns are `<c1>`, and after the DDL operation, the table columns are `<c1,c2>`.
 
-## TiDB Online DDL 实现
-TiDB Online DDL 是基于 F1 Online Schema 实现的，整体流程如图8 所示：
-![TiDB-online-ddl](/assets/images/post/onlineddl/image4.png "TiDB-online-ddl")
-图8 TiDB Online DDL 流程
+![Diagram showing the transition of intermediate states during schema changes in the F1 Online Schema Change mechanism, illustrating the process of schema state changes and the time boundary for nodes to update to the next schema state](/assets/images/post/onlineddl/image8.png "intermediate-state-transition")
 
-简单描述如下：
-1. TiDB Server 节点收到 DDL 变更时，将 DDL SQL 包装成 DDL job 提交到 TIKV  job queue 中持久化；
-2. TiDB Server 节点选举出 Owner 角色，从 TiKV job queue 中获取 DDL job，负责具体执行 DDL 的多阶段变更；
-3. DDL 的每个中间状态(delete-only/write-only/write-reorg)都是一次事务提交，持久化到 TiKV job queue 中;
-4. Schema 变更成功之后，DDL job state 会变更成 done/sync，表示 new schema 正式被用户看到，其他 job state 比如 cancelled/rollback done 等表示 schema 变更失败；
-5. Schema state 的变更过程中使用了 etcd 的订阅通知机制，加快 server 层各节点间 schema state 同步，缩短 `2*lease` 的变更时间。
-6. DDL job 处于 done/sync 状态之后，表示该 DDL 变更已经结束，移动到 job history queue 中；
+![Diagram showing the transition of intermediate states during schema changes in the F1 Online Schema Change mechanism, illustrating how service layer nodes' visibility to storage layer nodes changes during schema transitions, part 2](/assets/images/post/onlineddl/image3.png "intermediate-state-transition2")
 
-详细的 TiDB 处理流程可以参见：[schema-change-implement.md](https://github.com/ngaut/builddatabase/blob/master/f1/schema-change-implement.md) 和 [TiDB ddl.html](https://pingcap.github.io/tidb-dev-guide/understand-tidb/ddl.html)
+Figure 7: Intermediate state transition
 
-## TiCDC 中 Data 和 Schema 处理关系
-前面我们分别描述了 TiDB Online DDL 机制的原理和实现，现在我们可以回到最一开始我们提出的问题：在 TiDB Online DDL 机制下，是否还能满足：
+* In small figure (1), service layer nodes have transitioned to scenario 1, with some nodes in the old schema state and some in the new schema(delete-only) state. At this point, c2 is invisible to users, and explicit insert<c1,c2> or delete<c1,c2> operations specifying c2 fail. However, storage layer data like [1,xxx] can be deleted, and only rows like [7] missing c2 can be inserted.
+* In small figure (2), service layer nodes have transitioned to scenario 2, with some nodes in the new schema(delete-only) state and some in the new schema(write-only) state. At this point, c2 is still invisible to users, and explicit insert<c1,c2> or delete<c1,c2> operations specifying c2 fail. Nodes in the write-only state will internally fill default values for insert [9] to [9,0] in the storage layer. Nodes in the delete-only state will convert delete [9] to delete [9,0].
+* In small figure (3), after all service layer nodes transition to the write-only state, c2 is still invisible to users. At this point, data filling begins, filling rows missing c2 in historical data (implementation may vary, such as marking in the table's column information).
+* In small figure (4), transitioning to scenario 3 begins, with some nodes in the new schema(write-only) state and some in the new schema state. Nodes in the new schema(write-only) state still see c2 as invisible to users. Nodes in the new schema state see c2 as visible to users. Users connected to different service layer nodes may see different select results, but the underlying data is complete and consistent.
+
+#### Section Summary
+
+In the previous three sections, we briefly described the F1 online Schema mechanism. The original single-step schema change is broken down into multiple intermediate change processes, ensuring data consistency while achieving online DDL changes.  
+For add index or add column DDL, the state changes are as described above. For drop index or drop column, the process is completely reversed. For example, in the drop column state, the column becomes invisible to users in the write-only stage and beyond, but internally, it can be correctly inserted/deleted, with visibility being the same as previously discussed.
+
+## TiDB Online DDL Implementation
+
+TiDB Online DDL is based on the F1 Online Schema mechanism, and the overall process is shown in Figure 8:
+
+![Diagram showing the TiDB Online DDL process, illustrating the steps involved in the TiDB Online DDL mechanism](/assets/images/post/onlineddl/image4.png "TiDB-online-ddl")  
+Figure 8: TiDB Online DDL Process
+
+The process can be briefly described as follows:
+1. When a TiDB Server node receives a DDL change, it wraps the DDL SQL into a DDL job and submits it to the TiKV job queue for persistence;
+2. The TiDB Server node elects an Owner role, which fetches the DDL job from the TiKV job queue and is responsible for executing the multi-stage DDL change;
+3. Each intermediate state of the DDL (delete-only/write-only/write-reorg) is a transaction commit, persisted in the TiKV job queue;
+4. After the schema change is successful, the DDL job state changes to done/sync, indicating that the new schema is officially visible to users. Other job states like cancelled/rollback done indicate schema change failure;
+5. During the schema state change process, the etcd subscription notification mechanism is used to speed up schema state synchronization among server layer nodes, shortening the `2*lease` change time;
+6. After the DDL job is in the done/sync state, it indicates that the DDL change has ended and is moved to the job history queue;
+
+For detailed TiDB processing flow, refer to: [Detailed TiDB processing flow](https://github.com/ngaut/builddatabase/blob/master/f1/schema-change-implement.md) and [TiDB DDL Documentation](https://pingcap.github.io/tidb-dev-guide/understand-tidb/ddl.html)
+
+## Data and Schema Handling Relationship in TiCDC
+
+Earlier, we described the principles and implementation of the TiDB Online DDL mechanism. Now we can return to the initial question: under the TiDB Online DDL mechanism, can we still satisfy:
+
 ```
 New data commitTs > New schema commitTs
 ```
-答案是否定的。在前面 F1 Online Schema 机制的描述中，我们可以看到在 add column DDL 的场景下，当服务层节点处于 write-only 状态时，节点已经能够插入 new column data 了，
-但是此时 new column 还没有处于用户可见的状态，也就是出现了 `New data commitTs < New schema commitTs`，或者说上述结论变成了：
+
+The answer is no. In the description of the F1 Online Schema mechanism, we can see that in the add column DDL scenario, when service layer nodes are in the write-only state, they can already insert new column data, but the new column is not yet visible to users. This results in `New data commitTs < New schema commitTs`, or the above conclusion becomes:
+
 ```
 New data commitTs > New schema(write-only) commitTs
 ```
-但是由于在 delete-only + write-only 过渡状态下，TiCDC 直接使用 New schema(write-only) 作为解析的 schema，可能导致 delete-only 节点 insert 的数据无法找到对应的 
-column 元信息或者元信息类型不匹配，导致数据丢失。所以为了保证数据正确解析，可能需要根据不同的 DDL 类型和具体的 TiDB 内部实现，在内部维护复杂的 schema 策略。
-在当前 TiCDC 实现中，选择了比较简单的 schema 策略，直接忽略了各个中间状态，只使用变更完成之后的 schema 状态。为了更好表述在 TIDB Online DDL 机制下，
-当前 TiCDC 需要处理的不同场景，我们使用象限图进行进一步归类描述。
 
-|| Old schema | New schema |
-|----:| ----: | --------------: |
-|Old schema data | 1 |2 |
-|New schema data | 3 |4 |
+However, during the delete-only + write-only transition state, TiCDC directly uses the New schema(write-only) as the parsing schema, which may cause data inserted by delete-only nodes to lack corresponding column metadata or have mismatched metadata types, leading to data loss. To ensure correct data parsing, a complex schema strategy may need to be maintained internally based on different DDL types and specific TiDB internal implementations. In the current TiCDC implementation, a simpler schema strategy is chosen, directly ignoring intermediate states and only using the schema state after the change is complete. To better illustrate the different scenarios that TiCDC needs to handle under the TiDB Online DDL mechanism, we use a quadrant diagram for further classification and description.
 
-* 1对应 old schema 状态, 此时 old schema data 和 old schema 是对应的；
-* 4对应 new schema public 及之后, 此时 new schema data 和 new schema 是对应的；
-* 3对应 write-only ~ public 之间数据
-此时 TiCDC 使用 old schema 解析数据，但是处于 write-only 状态的 TiDB 节点已经可以基于 new schema insert/update/delete 部分数据，所以 TiCDC 会收到 new schema data。不同 DDL 处理效果不同，
-我们选取 3 个常见有代表性的 DDL 举例。
-    * add column： 状态变更 `absent -> delete-only -> write-only -> write-reorg -> public`。由于 new schema data 是 TiDB 节点在 write-only 状态下填充的默认值，所以使用 old schema 解析后会被直接丢弃，下游执行 new schema DDL 的时候会再次填充默认值。对于动态生成的数据类型，
-比如 auto_increment 和 current timestamp，可能会导致上下游数据不一致。
-    * change column：有损状态变更 `absent -> delete-only -> write-only -> write-reorg -> public`, 比如 int 转 double，编码方式不同需要数据重做。在 TiDB 实现中，有损 modify column 会生成不可见 new column，中间状态下会同时变更新旧 column。对于 TiCDC 而言，
-只会处理 old column 下发，然后在下游执行 change column，这个和 TiDB 的处理逻辑保持一致。
-    * drop column：状态变更 `absent-> write-only -> delete-only -> delete-reorg -> public。write-only` 状态下新插入的数据已经没有了对应的 column，TiCDC 会填充默认值然后下发到下游，下游执行 drop column 之后会丢弃掉该列。用户可能看到预期外的默认值，但是数据能满足最终一致性。
-* 2对应直接从 old schema -> new schema
-说明这类 schema 变更下，old schema 和 new schema 是可以共存的，不需要中间状态，比如 truncate table DDL。TiDB 执行 truncate table 成功后，服务层节点可能还没有加载 new schema，还可以往表中插入数据，这些数据会被 TiCDC 直接根据 tableid 过滤掉，最终上下游都是没有这个表存在的，满足最终一致性。
+|                | Old schema | New schema |
+|---------------:|-----------:|-----------:|
+| Old schema data|           1|           2|
+| New schema data|           3|           4|
 
-## 总结
-TiCDC 作为 TiDB 的数据同步组件，数据解析正确性问题是保证上下游数据一致性的核心问题。为了能充分理解 TiCDC 处理 data 和 schema 过程中遇到的各种异常场景，本文首先从 F1
-Online Schema Change 原理出发，详细描述在 schema 变更各个阶段的数据行为，然后简单描述了当前 TiDB Online DDL 的实现。最后引出在当前 TiCDC 实现下在 data 和 schema 处理关系上的讨论。
+* 1 corresponds to the old schema state, where old schema data matches the old schema;
+* 4 corresponds to the new schema public and beyond, where new schema data matches the new schema;
+* 3 corresponds to the write-only ~ public transition
+At this point, TiCDC uses the old schema to parse data, but TiDB nodes in the write-only state can already insert/update/delete some data based on the new schema, so TiCDC will receive new schema data. The handling effect varies with different DDLs. We select three common representative DDLs as examples.
+    * add column: State changes `absent -> delete-only -> write-only -> write-reorg -> public`. Since new schema data is filled with default values by TiDB nodes in the write-only state, it will be directly discarded when parsed with the old schema, and the downstream will refill default values when executing the new schema DDL. For dynamically generated data types, such as auto_increment and current timestamp, this may lead to data inconsistency between upstream and downstream.
+    * change column: Lossy state changes `absent -> delete-only -> write-only -> write-reorg -> public`, such as int to double, where different encoding methods require data redo. In the TiDB implementation, lossy modify column generates an invisible new column, and both old and new columns are updated simultaneously in intermediate states. For TiCDC, it only processes the old column and then executes the change column downstream, consistent with TiDB's handling logic.
+    * drop column: State changes `absent-> write-only -> delete-only -> delete-reorg -> public`. In the write-only state, newly inserted data no longer has the corresponding column, and TiCDC will fill default values and send them downstream. After executing the drop column downstream, the column will be discarded. Users may see unexpected default values, but the data will meet eventual consistency.
+* 2 corresponds to directly transitioning from the old schema to the new schema
+This indicates that under such schema changes, the old schema and new schema can coexist without intermediate states, such as truncate table DDL. After TiDB executes truncate table successfully, service layer nodes may not have loaded the new schema yet and can still insert data into the table. This data will be filtered out by TiCDC based on tableid, ensuring that the table does not exist in both upstream and downstream, meeting eventual consistency.
 
+## Summary
 
-## 阅读推荐
-[Online, Asynchronous Schema Change in F1](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf)
+As the data synchronization component of TiDB, the correctness of data parsing is the core issue to ensure data consistency between upstream and downstream. To fully understand the various exceptional scenarios encountered in TiCDC's handling of data and schema, this article first describes the principles of the F1 Online Schema Change mechanism in detail, then briefly describes the current TiDB Online DDL implementation, and finally discusses the handling relationship between data and schema in the current TiCDC implementation.
+
+In conclusion, understanding the F1 Online Schema Change mechanism and TiDB's implementation helps in grasping how TiCDC manages schema changes and ensures data consistency. By addressing the challenges of schema and data handling, TiCDC maintains reliable data synchronization across distributed systems.
+
+## Recommended Reading
+
+[Online, Asynchronous Schema Change in F1 paper](https://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/41376.pdf)
