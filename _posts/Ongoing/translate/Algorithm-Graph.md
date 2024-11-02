@@ -15,45 +15,44 @@ banner:
 tags: Algorithm Graph
 ---
 
-> NOTE: The content is derived from [Algorithms, 4th Edition](https://algs4.cs.princeton.edu/home/), mainly recording personal understanding of the algorithms. If you are interested or need the Java source code, you can directly read the [online website graph](https://algs4.cs.princeton.edu/40graphs/). Enjoy it:)
+> NOTE: 内容来自于 [算法4](https://algs4.cs.princeton.edu/home/), 主要记录个人对其中算法的理解。有兴趣或者需要 Java 源码可以直接阅读 [online website graph](https://algs4.cs.princeton.edu/40graphs/). Enjoy it:)
 
-## Graphs
+## 图
 
-Graph structures are an important abstraction of the real world, representing relationships between entities and widely existing in various scenarios, such as:
-* Maps: A very direct graph relationship where locations are vertices and roads are edges.
-* Social networks: Each person has multiple friends, who in turn have friends, possibly forming cyclic acquaintance chains. Friend relationships are generally bidirectional, while follow relationships on platforms like Twitter are unidirectional.
-* Website hyperlinks: As a classic distributed application, websites form a large-scale graph by maintaining hyperlinks to other websites.
-* Product scheduling/trade relations/software design: These scenarios involve interactions between multiple modules, naturally forming a graph abstraction with vertices and edges.
+图结构是现实世界的一个重要抽象，表达的是实体间的关联关系，广泛存在于多种场景中，比如：
+* 地图：非常直接的图关系，地点是顶点，道路是路径。
+* 人际关系和社交网络：每个人有多个好友，好友又有好友，可能存在环状的相识链，好友关系一般是双向关系，而微博等平台的关注关系则是单向关系。
+* 网站超链接：网站作为经典的分布式应用，网站内部通过维护其他网站超链接的方式组成一个超大规模图。
+* 商品调度/贸易关系/软件设计：这些场景都涉及了多个模块之间的交互，自然存在顶点和连接的图抽象。
 
-Classic graphs can be divided into undirected graphs and directed graphs:
+经典的图可以分成无向图和有向图：
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 ![directed-graph](/assets/images/post/algorithm-graph/classic-directed-graph.png)
 
-## Properties of Graphs
+## 图的性质
 
-Graphs consist of vertices and edges, with the following properties and related concepts:
+图由顶点和边构成，存在以下性质和相关概念：  
 ![attributes](/assets/images/post/algorithm-graph/anatomy-of-a-graph.png)
-1. **Degree/in-degree/out-degree**: The number of edges directly connected to a vertex is called the degree of the vertex. In directed graphs, the degree is further divided into *in-degree* and *out-degree*.
-2. **Path/length of path**: A series of vertices connected by edges is called a path, and the length of the path is the number of edges.
-3. **Connected/connected component**: A graph is connected if there is at least one path between every pair of vertices. A connected component is a subset of vertices that are all connected to each other. A graph may contain multiple connected components.
-4. **Acyclic graph**: A graph with no cycles is called an acyclic graph, which is a tree.
+1. **顶点度(degree)/入度(in-degree)/出度(out-degree)**：直接连接到该顶点的边个数称为顶点的度，在有向图中，度被进一步区分成*入度*和*出度*。
+2. **路径(path)/路径长度(length of path)**：边连接的一系列顶点称为路径，路径长度为边的个数。
+3. **连通(connected)/连通分量(connected component)**: 当每个顶点对其他顶点都存在至少一条路径时我们称图是连通的。连通分量表示图中互相连通的顶点集合。一个图中可能含有多个连通分量。
+4. **无环图(acyclic graph)**: 一个图中没有环则称为无环图，是一颗树。
 ![acyclic-graph](/assets/images/post/algorithm-graph/acyclic-graph.png)
-5. **Spanning tree**: A tree that includes all vertices of a graph is called a spanning tree. A spanning tree has exactly V-1 edges, and adding any extra edge will form a cycle in the tree. For example, the shaded parts in the figure below are spanning trees of different connected components. Spanning trees play an important role in studying *graph connectivity* and *minimum connectivity problems*.
+5. **生成树(spanning tree)**：一个图中连接所有顶点的树称为生成树，生成树恰好有 V-1 条边，且添加任意一条额外的边都会在树中成环。比如下图中阴影部分就是各个连通分量的生成树，生成树在研究*图连通性*和*最小连通问题*等问题领域都有重要作用。
 ![spanning-tree-forest](/assets/images/post/algorithm-graph/spanning-tree-forest.png)
-6. **Forest and spanning forest**: A forest is a collection of trees, and a spanning forest is a collection of spanning trees.
+6. **森林(forest)和生成树森林(spanning forest)**: 多个树组成森林，多个生成树组成生成树森林。
 
-## Graph Representation and Operations
+## 图的表示和操作
+在下面的表示中，为了结构清晰，参考[算法4](https://algs4.cs.princeton.edu/40graphs/)我们会将图的表示分成图行为和图实现，并且分离出图搜索等相关操作算法。其中：
+* 图行为：提供图的基本操作，比如顶点个数，边个数，顶点的邻接顶点集等。
+* 图实现：具体实现图的方法，比如是使用数组还是链表存储顶点和边集合。
+* 图操作：包括图搜索等算法，每个操作都可以独立开来，只和图行为交互，和图表示没有关系。
 
-In the following representations, for clarity, we will separate graph behavior and graph implementation, and isolate graph operations such as search algorithms. Specifically:
-* Graph behavior: Provides basic operations on graphs, such as the number of vertices, the number of edges, and the set of adjacent vertices of a vertex.
-* Graph implementation: Specific methods for implementing graphs, such as using arrays or linked lists to store vertices and edges.
-* Graph operations: Includes algorithms such as graph search, which can be independent and only interact with graph behavior, not with graph representation.
+在描述图和图算法过程中，我们使用面向对象的语言 C++。面向对象的设计方法可以有效隐藏相关实现，并且通过 public 接口明确定义各组件的交互边界。
 
-In describing graphs and graph algorithms, we use the object-oriented language C++. Object-oriented design methods effectively hide implementation details and clearly define the interaction boundaries of each component through public interfaces.
+### 图的行为
 
-### Graph Behavior
-
-Whether it is a directed graph or an undirected graph, the graph behavior can be defined as follows:
+不管是有向图还是无向图，图行为都可以定义如下：
 
 ```
 /**
@@ -90,11 +89,11 @@ public:
 };
 ```
 
-It is worth mentioning ListIterator. The design philosophy of iterators in C++ and Java is different.  
-Java's Iterator<T> interface is a pure behavior interface, relying on runtime polymorphism to achieve dynamic binding of behavior, which suits Java's object reference design.  
-C++ iterators, while hiding the internal implementation of the iterator, focus more on the type of the iterator to achieve more efficient implementations based on different specializations. For example, for array pointer specialization, calculating distance can be done in $O(1)$ time using pointer subtraction, without $O(N)$ traversal. The std::iterator library uses template classes for static polymorphism embedded in the std::algorithm library, rather than interface-based dynamic polymorphism like Java's Iterator<T>.
+其中需要特殊提下 ListIterator, C++ 和 Java 的 iterator 设计理念不同。  
+Java 的 Iterator<T> 接口是个纯行为接口，它依赖运行时多态实现行为的动态绑定，这很适合 Java 的对象引用设计。  
+而 C++ 的 iterator 虽然隐藏了 iterator 内部实现，但是它更关注的是 iterator 的类型，以便根据不同的特化做更高效率的实现。比如对于数组指针的特化, 计算 distance 时可以实现 $O(1)$ 的指针减法操作, 不需要 $O(N)$ 的遍历。std::iterator 库是通过 template class 这种 static polymorphism 嵌入到 std::algorithm 库中，而不是类似 Java 的 Iterator<T> 接口型 dynamic polymorphism。
 
-To reuse std::algorithm algorithms and encapsulate internal container implementation details, ListIterator and Iterator are defined. (This part needs to be rewritten later to avoid relying on std::algorithm, making the algorithm description more dependent on interface behavior!!!)
+为了复用 std::algorithm 算法和封装内部 container 相关实现细节，定义了 ListIterator 和 Iterator。(这部分后续需要重写，不依赖 std::algorithm 会使算法描述更依赖接口行为!!!)
 
 ```
 // std::algorithm style iterator interface
@@ -124,24 +123,23 @@ class ListIterator : public Iterator<Tp, Ptr, Ref>
 }
 ```
 
-### Graph Representation
+### 图的表示
+图的表示根据不同的数据场景和访问模式可以有多种表示方式，这就是我们平时在存储中经常提及的 Data Model。
 
-Graph representation can vary based on different data scenarios and access patterns, which is what we often refer to as Data Model in storage.
-
-1. For dense graphs, an adjacency matrix representation $graph[V][V]$ can be used. This method is characterized by compact data, good data locality, and high hardware cache hit rate. Picture from [wiki](https://en.wikipedia.org/wiki/Adjacency_matrix).
+1. 对于 dense graph，可以使用邻接矩阵(adjacency-matrix)的方式表示 $graph[V][V]$，这种方式的特点是数据紧凑，data locality 特性好，硬件缓存击中率高。picture from [wiki](https://en.wikipedia.org/wiki/Adjacency_matrix)。
 ![adjacency-matrix](/assets/images/post/algorithm-graph/adjacency_matrix.png)
 
-2. For sparse graphs, adjacency lists can be used to save space.
+2. 对于 sparse graph，可以使用邻接链表(adjacency-lists)的方式表示，这种方式节省空间。
 ![adjacency-lists](/assets/images/post/algorithm-graph/adjacency_lists.png)
 
-3. For small graphs with fixed vertices and edges, arrays can be used to compactly store adjacent edges in each vertex, or edges can be compactly stored in an edge array classified by vertices. For example:
-* Vertex array: [{0: [{0, 1}, {0, 2}]}, {1: [{1, 4}, {1, 3}]}, {2: [{2, 4}, {2, 1}]}, ...]
-* Edge array + length array:  
+3. 对于固定顶点和边的小图，可以使用数组的方式在每个顶点中紧凑存储邻接边，或者按顶点分类在边数组中紧凑存储邻接边。比如：
+* 顶点数组：[{0: [{0, 1}, {0, 2}]}, {1: [{1, 4}, {1, 3}]}, {2: [{2, 4}, {2, 1}]}, ...]
+* 边数组+长度数组：  
 edge array: [{0, 1}, {0, 2}, {1, 4}, {1, 3}, {2, 4}...]  
-length array: [0, 2, 4], indicating the starting position of edges in the edge array for different vertices  
+length array: [0, 2, 4], 表示不同起点的边在边数组中的起始位置  
 [TODO] graph
 
-4. Chain-forward array (chained array) representation of graphs combines the dynamic incrementality of linked lists with the data locality of arrays, often used in ACM problem-solving. For example:
+4. 链式前向数组(链状数组)表示图，兼具链表的动态增减性，又具备数组的 data locality，也经常用在 acm 解题中。比如定义：
 
 ```
 const int MaxE=1000;
@@ -154,10 +152,10 @@ struct edge {
 
 int head[MaxV]; // head for each vertex, points to adjacent edge list
 ```
-The above defines an edge array compactly using arrays and uses the head array to store the head of the adjacent edge list for each vertex.
+上面使用数组的方式紧凑定义了边数组，并且使用 head 数组保存所有节点的邻接边链表头。
 [TODO] graph
 
-5. By leveraging imagination, there are various other representation methods. If the storage process requires organizing vertices and edges in the graph using an index, various index structures can be used based on access patterns, such as different tree structures—binary trees, red-black trees, AVL trees, and B/B+/B- trees, or skip-lists or LSM trees. The key structure can be chosen as:
+5. 发挥想象力，还有各种各样的表示方式，假如存储过程中需要使用索引的方式组织图中的点和边，则根据访问模式可以使用非常多得索引结构，比如各种树型结构---二叉树，红黑树，AVL树和B/B+/B-树，还是 skip-list 或者 LSM tree。其中 key 的结构可以选择：
 
 ```
 $vertex index
@@ -167,17 +165,17 @@ $edge index
 ...
 ```
 
-If graph persistence is desired, B-trees/LSM trees storing key-value pairs of vertices and edges are a good choice.
+如果想支持图持久化，则 B 族树/LSM 树存储 key-value 形式的顶点和边是很好的选择。
 
-6. Further extending, similar to OLTP using rows as the data model and OLAP using columns as the data model, if vertices or edges have many attributes and there is a need to accelerate the analysis of vertex/edge attributes in the graph, a column storage data model can be used, storing keys as \$vertex index_\$vertex attribute or \$edge index_\$edge attribute.
+6. 再拓展下，类似 OLTP 中使用 row 作为 data model，而 OLAP 使用 column 作为 data model。如果顶点或者边有很多属性，又需要加速对图中顶点/边属性的分析，也可以参考 column storage data model，使用 \$vertex index_\$vertex attribute 或者 \$edge index_\$edge attribute 作为存储 key。
 
-## Depth-First Search (DFS) and Breadth-First Search (BFS) of Graphs
+## 图的深度优先遍历(DFS)和宽度优先遍历(BFS)
 
-Depth-First Search (DFS) of a graph prioritizes visiting successor vertices in the path, similar to post-order traversal of a multi-way tree. Breadth-First Search (BFS) prioritizes visiting all adjacent vertices of the current vertex before visiting secondary adjacent vertices, similar to a fan-out access pattern.
+图的深度优先遍历是指优先访问路径中的 succesor vertex, 相当于多叉树的后序遍历。图的宽度优先遍历是指优先访问当前顶点的所有邻接顶点，再访问二级邻接顶点，类似 Fan-out 的访问模式。
 
-### Depth-First Search (DFS)
+### 深度优先遍历(DFS)
 
-DFS can be implemented well using recursion to backtrack through vertices. To avoid revisiting the same vertex, a marked_ array is used to mark vertices that have been visited. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/dfs_path.cpp).
+DFS 可以依赖递归很好得实现顶点回溯访问，同时为了避免重复访问相同的顶点，需要标记数组 marked_ 标记顶点以被访问过。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/dfs_path.cpp)。
 
 ```
 void DfsPaths::dfs(const UndirectedGraph& G, int v) {
@@ -192,11 +190,11 @@ void DfsPaths::dfs(const UndirectedGraph& G, int v) {
 }
 ```
 
-DFS has a time complexity of $O(E+V)$, where each edge is visited once (undirected edges can be considered as bidirectional directed edges), and each vertex is visited once (specifically marked once, with the total number of vertex visits differing only by a constant factor). The space complexity is $O(V)$, used to store the marked_ array and the DFS traversal tree edge_to_.
+DFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$，用于存储标记数组 marked_ 和 DFS 遍历树 edge_to_。
 
-### Breadth-First Search (BFS)
+### 宽度优先遍历(BFS)
 
-BFS requires a queue to achieve FIFO, where each visited vertex enqueues all its unvisited adjacent vertices. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/bfs_path.cpp).
+BFS 需要借助队列实现 FIFO 的效果，每访问一个顶点都优先将它的所有未被访问过的邻接顶点入队列。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/bfs_path.cpp)。
 
 ```
 void BfsPaths::bfs(const UndirectedGraph& G, int v) {
@@ -220,17 +218,17 @@ void BfsPaths::bfs(const UndirectedGraph& G, int v) {
     }
 }
 ```
-BFS has a time complexity of $O(E+V)$, where each edge is visited once (undirected edges can be considered as bidirectional directed edges), and each vertex is visited once (specifically marked once, with the total number of vertex visits differing only by a constant factor). The space complexity is $O(V)$.
+BFS Time Complexity 为 $O(E+V)$，每个边都被访问一次(无向边可以认为是双向的有向边)，顶点也被访问一次(这里特指被标记一次，整体访问顶点次数只有系数差别)。Space Complexity 为 $O(V)$。
 
-## Undirected Graphs
+## 无向图
 
-Edges in undirected graphs are bidirectional. They model bidirectional relationships, such as the connection between two components in an electrical system, bidirectional roads, and friendships in social networks.
+无向图的边是无向的，也可以认为是双向的。它是对双向关系的建模，比如电路系统中电线连接的 2 个组件，道路中的双向通道和社交中的朋友关系等等。
 
-### Cycle Detection
+### 环检测
 
-Cycle detection is a common application of graphs, and the method is straightforward—DFS. DFS is essentially a backtracking traversal of a multi-way tree. In cycle detection, we can maintain the current path, and if we find an adjacent vertex already in the path, it indicates that the current path forms a cycle.
+环检测是图的一个常见应用，使用的方法也非常直接---DFS。DFS 本质上是多叉树的回溯访问，在环检测中，我们可以维护当前访问的 path，如果发现邻接顶点已经在 path 中，说明当前 path 成环了。
 
-In the implementation of cycle detection for undirected graphs, it is important to exclude the starting vertex to avoid false positives. For example, for edge <2, 3>, if DFS visits 3 from 2, 3 may visit 2 again along the original edge <2, 3>, leading to a false positive. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/cycle.hpp).
+无向图在环检测实现中要注意排除掉起始顶点，避免误判，比如边<2, 3>，DFS 从 2 访问到 3，3 可能又沿着原始边 <2, 3> 访问到 2，导致误判。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/cycle.hpp)。
 
 ```
 void dfs(const UndirectedGraph &g)
@@ -277,14 +275,14 @@ void dfs_recur(const UndirectedGraph &g, int v, int from)
 }
 ```
 
-Cycle detection is essentially a DFS, so its time complexity is $O(E+V)$, and space complexity is $O(V)$.
+环检测本质上还是一次 DFS，所有其 Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
-### Connected Components
+### 连通分量(Connected Component)
 
-Another interesting property of undirected graphs is connectivity. Since edges in undirected graphs are bidirectional, vertices connected by edges are mutually connected, forming a connected component. For example, the graph below has 3 connected components.
+无向图另外一个有意思的性质是连通性 connectivity。因为无向图的边是没有方向性的，所以只要存在边连接的顶点都是互相 connected，我们称为这样的连通的顶点集为连通分量(Connected Component)。比如下图中就存在 3 个连通分量。
 ![undirected-graph](/assets/images/post/algorithm-graph/classic-graph.png)
 
-A single DFS can visit all vertices in a connected component, so running DFS on each vertex in the graph can determine the number of connected components. Of course, vertices that have already been visited do not need to run DFS again. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/connected_component.hpp).
+一次 DFS 就可以访问到一个连通分量中的所有顶点，所以只要对图中逐个顶点进行 DFS 即可知道图中有多少个 Connected Component。当然已经访问过的顶点就不用再运行 DFS 了。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/connected_component.hpp)。
 
 ```
 void ConnectedComponent::dfs(const UndirectedGraph &G)
@@ -314,17 +312,17 @@ void ConnectedComponent::dfs_recur(const UndirectedGraph &G, int v)
 }
 ```
 
-Detecting connected components is essentially the same as running a single DFS on a connected graph. The time complexity is $O(E+V)$, and the space complexity is $O(V)$.
+检测连通分量其实本质上和对一个连通图运行一次 DFS 没有区别，Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
-## Directed Graphs
+## 有向图
 
-Edges in directed graphs are unidirectional, meaning they only go from the starting vertex to the ending vertex without a reverse direction. Therefore, directed graphs study reachability, not connectivity. They model unidirectional relationships, such as followers to idols in social networks or subordinates reporting to superiors in a workplace.
+有向图的边是单向的，只能从起始顶点到结束顶点，没有反向性质，所以有向图研究的是可达性 reachability，不是 connectivity。它是单向关系的建模，比如社交网络中粉丝对偶像的单向关注，职场环境中下级对上级的单向汇报关系等。
 
-### Cycle Detection and DAG (Directed Acyclic Graph)
+### 环检测和 DAG(Directed Acyclic Graph)
 
-Cycle detection in directed graphs is similar to undirected graphs, achieved by checking for path loops in the current path. A directed graph without cycles is called a DAG (Directed Acyclic Graph). DAGs are widely used in task scheduling because they can provide a topological order that satisfies all precedence constraints, allowing tasks to be scheduled sequentially.
+有向图的环检测和无向图一样，都是通过为当前 path 判断是否出现 path 回环。无环有向图被称为 DAG(Directed Acyclic Graph), DAG 被广泛应用于任务调度中，因为 DAG 可以获得一个满足所有 precedence contraint 的拓扑排序，使得任务调度可以依序进行。
 
-The implementation of cycle detection is as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/dag.hpp).
+环检测实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/dag.hpp)。
 
 ```
 void dfs(const Digraph &G)
@@ -363,16 +361,16 @@ void dfs_recur(const Digraph &G, int v, int from)
 }
 ```
 
-Cycle detection in directed graphs also involves running a single DFS. The time complexity is $O(E+V)$, and the space complexity is $O(V)$.
+有向图环检测也是类似运行一次 DFS，Time Complexity 为 $O(E+V)$，Space Complexity 为 $O(V)$。
 
-### DAG and Topological Sort
+### DAG 和拓扑排序(Topological Sort)
 
-A DAG is an abstraction of relationships without cyclic dependencies. For example, multiple tasks may depend on each other, and we need to determine how to schedule the tasks to satisfy all dependencies. This problem is known as precedence-constrained scheduling.
+DAG 是对无循环依赖的关系的一个抽象，比如多个任务之间互相依赖，需要研究如何安排任务的开始时间以满足所有的依赖关系，我们称这个问题为前置依赖调度(Precedence-constrained scheduling)。
 ![precedence constraints](/assets/images/post/algorithm-graph/precedence_constraints.png)
-More intuitively, it can be seen as arranging vertices so that all directed edges point in one direction, satisfying all precedence constraints. This order is called a topological sort.
+更形象的，可以看成如何排列顶点，使得所有的有向边都朝向一个方向，从而满足所有的 precedence constraints，称这种次序为拓扑序(topological sort)。
 ![topological sort](/assets/images/post/algorithm-graph/topological_sort.png)
 
-The difficulty in obtaining a topological sort lies in capturing the order relationships among all adjacent vertices of a vertex. At least one DFS pre-order can only capture the order relationship between parent and child vertices, but not between sibling vertices. For example:
+获取 topological sort 的难点在于无法捕捉一个顶点的所有邻接顶点间的次序关系，起码一次 DFS pre-order 只能获取到父子顶点的次序关系，而无法获得 sibling 顶点的次序关系。举个例子：
 
 [TODO] graph
 
@@ -386,7 +384,7 @@ possible pre-order DFS: 1 -> 3 -> 4 -> 2
 we need topological sort: 1 -> 2 -> 3 -> 4
 ```
 
-To solve this problem and capture the order relationships among all adjacent vertices of a vertex, we can observe an interesting property of DFS, which is its post-order traversal. For example:
+为了解决这个问题，捕捉一个顶点的所有邻接顶点间的次序关系，我们可以观察 DFS 的一个很有意思的特性，就是它的 post-order traversal。举个例子：
 
 [TODO] graph
 
@@ -397,13 +395,13 @@ To solve this problem and capture the order relationships among all adjacent ver
 <C, D>
 ```
 
-For a graph where there is a directed relationship among the adjacent vertices of A, the post-order traversal output is from back to front. Therefore:
-1. If we first visit <A, B>, we will continue to visit <B, C> and <C, D>, resulting in a post-order output of {D, C, B, A}.
-2. If we first visit <A, C>, we will continue to visit <C, D>, then backtrack to visit <B, C>, resulting in a post-order output of {D, C, B, A}.
+对于这样一个 A 的邻接顶点间存在有向关系的图，post-order traversal 输出结果是从后往前输出的，所以:
+1. 如果先访问到 <A, B>，则一定会继续访问 <B, C>， <C, D>，此时有向关系导致顶点的 post-order 输出为 {D, C, B, A};
+2. 如果先访问到 <A, C>, 则一定会继续访问 <C, D>, 再回溯访问 <B, C>， 此时 post-order 输出为 {D, C, B, A};
 
-We can see that the post-order traversal, which visits child nodes before the node itself, naturally outputs the directed dependency relationships among nodes. The final output is the reversed post-order traversal, which needs to be reversed again to obtain the topological sort.
+我们可以看到 post-order traversal 先访问子结点再访问本身的特性，天然就能输出节点见的有向依赖关系，它最终输出的结果是 reversed post-order traversal, 需要再做一次 reverse 才能获得 topological sort。
 
-[Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/topological.hpp).
+[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/topological.hpp)。
 
 ```
 void dfs(const Digraph &g)
@@ -451,23 +449,23 @@ void reverse_order()
 }
 ```
 
-The Topological Sort algorithm is essentially a DFS. Its time complexity is $O(E+V)$, and the space complexity is $O(V)$.
+Topological Sort 算法本质上也是一次 DFS， 它的 Time Complexity 为 $O(E+V)$, Space Complexity 为 $O(V)$。
 
-### Transitive Closure
+### 传递闭包(Transitive Closure)
 
-Transitive closure is a mathematical concept that refers to finding the smallest transitive relation containing a given relation on a set $X$. [In terms of a graph, it means that if there is a path from vertex $i$ to vertex $j$ in the original graph, then there should be a direct edge from $i$ to $j$ in the transitive closure graph](https://zhuanlan.zhihu.com/p/266356742).
+传递闭包是数学上的概念，指是在集合$X$上求包含关系$R$的最小传递关系。[从关系图的角度来说，就是如果原关系图上有 $i$ 到 $j$ 的路径，则其传递闭包的关系图上就应有从 $i$ 到 $j$ 的边](https://zhuanlan.zhihu.com/p/266356742)。
 
-So essentially, transitive closure discusses the reachability of vertex pairs in a directed graph. If any two vertices are reachable, there should be a corresponding edge in the transitive closure graph.
+所以本质上传递闭包讨论的是*有向图中顶点对的可达性 reachability*，任意两个顶点可达，则传递闭包的关系图上就有对应的边。
 
-Unlike undirected graphs, whose transitive closure can be well represented by connected components or Union-Find algorithms due to the bidirectional nature of edges, the transitive closure problem in directed graphs is more complex. For example:
+不同于无向图，其传递闭包可以用连通分量或者 Union-Find 算法很好表示，因为边的关系是双向的。有向图的传递闭包问题要复杂一点。举个例子：
 
 ```
 1 -> 2 -> 3
 ```
 
-A single DFS starting from 1 can determine that {1, 2}, {1, 3}, and {2, 3} are reachable, but it cannot determine whether {2, 1} and {3, 1} are reachable.
+一次从 1 开始的 DFS 就可以确定 {1, 2}, {1, 3}, {2, 3} 是可达，但是却不能确定 {2, 1} 和 {3, 1}是不是可达的。
 
-A brute-force solution can solve this problem by running DFS from each vertex, thus determining all-pairs reachability. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/transitive_closure.hpp).
+暴力解法可以解决这个问题，我们分别从所有的顶点开始运行 DFS，这样我们就知道 all-pairs reachability。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/transitive_closure.hpp)。
 
 ```
 TransitiveClosure(const Digraph &g)
@@ -481,11 +479,11 @@ bool Reachable(int v, int w) const
 }
 ```
 
-The transitive closure can also be represented using a $V*V$ matrix, which is essentially the same as the above implementation. Each row in the matrix corresponds to the marked_ array in the DirectDFS class.
+也可以用 $V*V$ 矩阵的方式表示 Transitive Closure，本质上和上述实现是一样的，矩阵中的每一行相当于 DirectDFS 类内部的标记数组 marked_[V] 。 
 
-The time complexity of the DFS version of the transitive closure is $O(V*(E+V))$, and the space complexity is $O(V^{2})$.
+DFS 版本的 Transitive Closure Time Complexity 为 $O(V*(E+V))$, Space Complexity 为 $O(V^{2})$。
 
-For dense graphs, using an adjacency matrix $graph[V][V]$ to represent the graph, the reachability can be determined by traversing all intermediate vertices between any two vertices. This is essentially a brute-force traversal, known as the Floyd-Warshall Algorithm. The time complexity is $O(V^{3})$, and the space complexity is $O(V^{2})$. [Code source](https://www.geeksforgeeks.org/transitive-closure-of-a-graph/).
+以上是 sparse graph 的求解时间复杂度，如果是 dense graph，使用 adjacency matrix $graph[V][V]$ 来表示图，则需要遍历任意两个顶点所有中间顶点的方式确定 reachability，原理上也是暴力遍历，这称为 Floyd Warshall Algorithm。Time Complexity 为 $O(V^{3})$, Space Complexity 为 $O(V^{2})$。[代码来源](https://www.geeksforgeeks.org/transitive-closure-of-a-graph/)。
 
 ```
 /* Add all vertices one by one to the
@@ -523,46 +521,46 @@ for (k = 0; k < V; k++)
 }
 ```
 
-### Strongly Connected Components (SCC)
+### 强连通分量(Strongly Connected Component)
 
-Similar to connected components in undirected graphs, directed graphs also have the concept of strongly connected components. Since edges in directed graphs are unidirectional, a strongly connected component must form a cycle to achieve mutual reachability. The following diagram shows strongly connected components with different numbers of vertices, where a single vertex itself is also a strongly connected component.
+类似于无向图中的连通分量，有向图也有强连通分量的概念。因为有向图的边是单向关系，所以有向图的强连通分量一定要成环才能达到互相可达(reachable)的效果。下图展示不同顶点数的强连通分量，单个顶点自己也是一个强连通分量。
 ![strongly_connected_component](/assets/images/post/algorithm-graph/strongly_connected_component.png)
 
-Specifically, we can view a strongly connected component as a large vertex, allowing the entire graph to be described as a DAG of normal vertices and large vertices. This large vertex may bring some convenience in information compression and model building.
+特别得，我们可以把一个强连通分量看成一个大型顶点，这样整个图就可以描述成正常顶点和大型顶点的 DAG 图。这种大型顶点可能在信息压缩和模型建模上带来一些便利。
 ![strongly_connected_component2](/assets/images/post/algorithm-graph/strongly_connected_component2.png)
 
-Returning to solving strongly connected components, we can see from the above diagram that if the DFS traversal starts from vertex 1, it cannot visit the nearest strongly connected component {0,2,3,4,5}. If the DFS traversal starts from vertex 2, it can traverse the entire strongly connected component {0,2,3,4,5}, but **it cannot identify some non-strongly connected component vertices, failing to distinguish between vertex 1 and vertex 0**. Therefore, we need to solve this problem.
+回到求解强连通分量上，从上图中我们可以看到，假如 DFS 遍历起始顶点是 1，则 DFS 无法访问到最近的强连通分量 {0,2,3,4,5}。如果 DFS 遍历起始顶点是 2，则 DFS 可以遍历整个强连通分量 {0,2,3,4,5}，**问题是它无法识别一些非强连通分量顶点，无法区分顶点 1 和顶点 0 的区别**，所以我们需要解决这个问题。
 
-First, we observe some characteristics of graphs with strongly connected components:
-1. Viewing a strongly connected component as a large vertex, the entire graph can be described as a DAG;
-2. Vertices within a strongly connected component are mutually reachable, so a single DFS can mark all vertices within a strongly connected component;
-3. Reversing the direction of edges within a strongly connected component still results in a strongly connected component;
+我们首先观察存在强连通分量的图的一些特性：
+1. 将强连通分量抽象成大型顶点，则整个图可以描述成一个 DAG;
+2. 强连通分量内部顶点是互相可达的，则一次 DFS 至少可以标记一个强连通分量内的所有顶点;
+3. 反转强连通分量的边方向，仍然是个强连通分量;
 
-To solve the problem of *distinguishing strongly connected component vertices from non-strongly connected component vertices* during DFS traversal, an important idea is:
-**If we can know the directed relationships between vertices in advance**, 
-we can visit the successor vertex of a strongly connected component first, then visit the strongly connected component vertices, thus distinguishing different types of vertices through visit marks.
+为了解决 DFS 遍历过程中*区分强连通分量顶点和非强连通分量顶点*， 一个重要的想法是:   
+**如果能提前知道顶点间的有向关系**，  
+可以先访问强连通分量的 successor vertex，再访问强连通分量顶点，这样就可以通过访问标记区分不同类型的顶点。
 
-For example, in the above diagram, visiting vertex 1 first, then vertex 2, allows the DFS starting from vertex 2 to traverse the entire strongly connected component without visiting vertex 1, as vertex 1 has already been visited. It also won't visit vertex 6, as the entire strongly connected component {0,2,3,4,5} is not reachable to 6.
+比如上图中，先访问顶点 1，再访问顶点 2，此时从顶点 2 开始的 DFS 会遍历整个强连通分量，但是不会访问到顶点 1, 因为顶点 1 已经被访问过了。也不会访问到顶点 6, 因为整个强连通分量 {0,2,3,4,5} 都对 6 不可达。
 
-**How can we know the directed relationships between vertices in advance?**
+**如果能提前知道顶点间的有向关系？**
 
-As mentioned earlier, a strongly connected component can be abstracted as a large vertex because its internal vertices are mutually reachable. The entire graph is essentially a DAG, and *the topological sort of a DAG represents the precedence constraints between vertices. In this scenario, we need the reverse topological sort*, as we need to start from the successor vertex, not the precedence vertex.
+前面我们提到过，强连通分量本身可以抽象成一个大型顶点，因为它内部顶点是互相可达的，所以在有向关系上内部任意一个顶点都是一样的。整个图其实就是一个 DAG，*而 DAG 的 topological sort 就是顶点间的 precedence contraints，只不过在这个场景下我们需要的是 reverse topological sort*, 因为我们需要从 successor vertex 开始访问，而不是从 precedence vertex 开始访问。
 
-The algorithm idea is very clear, but the implementation still faces challenges: *The actual graph has cycles, not a DAG, so we cannot compute the DAG topological sort*.
+算法思路上非常清晰，但是实现上还是遇到了挑战: *实际图中有环，不是 DAG，无法计算 DAG topological sort*。
 
-Here, we need to understand a detail: computing the DAG topological sort itself is just a DFS post-order traversal. Any graph can be traversed entirely by DFS, but the post-order traversal of an acyclic DAG can express the properties of a topological sort.
+这里需要清楚一个细节，DAG topological sort 计算本身只是 DFS post-order traversal，任意图都可以通过 DFS 遍历整个图，只是无环 DAG 的 DFS post-order traversal 能表达出 topological sort 的性质。
 
-Therefore, we can still run a DFS post-order traversal on a directed graph with strongly connected components. However, its reverse post-order is not a topological sort. For example, running a DFS post-order traversal on the above graph may result in a partial post-order of {3, 2, 4, 5, 1, 0}, and the reverse partial post-order is {0, 1, 5, 4, 2, 3}, which does not meet our requirement of visiting vertex 1 first. The reason is that *DFS on the original graph cannot control the order of visiting adjacent vertices*.
+所以我们仍然可以在含有强连通分量的有向图中运行 DFS post-order traversal，只是它的 reverse post-order 不是 topological sort。比如在上图中运行 DFS post-order traversal，可能出现的 partial post-order 是 {3, 2, 4, 5, 1, 0}, reverse partial post-order 是 {0, 1, 5, 4, 2, 3}，不符合我们需要先访问顶点 1 的要求，原因在于*原图上运行 DFS 无法控制访问邻接顶点的次序*。
 
 [TODO] graph
 
-To avoid visiting non-strongly connected component adjacent vertices, we need to:
-1. Reverse the directed relationships from non-strongly connected component adjacent vertices to strongly connected component vertices, i.e., reverse the graph;
-2. Run a DFS post-order traversal on the reversed graph. Since the strongly connected component {0,2,3,4,5} is still a strongly connected component in the reversed graph, but it is not reachable to vertex 1, the reverse partial post-order will satisfy {1, any sequence in {0,2,3,4,5}};
-3. Perform DFS on the original graph according to the reverse partial post-order of the reversed graph to find all strongly connected components;
+所以为了避免访问到非强连通分量邻接顶点，需要：
+1. 反转非强连通分量邻接顶点到强连通分量顶点的有向关系，也就是先把图 reverse;
+2. 再在 reverse graph 上运行 DFS post-order traversal。由于强连通分量 {0,2,3,4,5} 在 reverse graph 中仍然是强连通分量，但是强连通分量 {0,2,3,4,5} 不再对顶点 1 可达，从而保证 reverse partial post-order 一定满足 {1, any sequence in{0,2,3,4,5}};
+3. 再以 reverse graph's reverse partial post-order 对原图进行 DFS 问题即可搜索到所有的强连通分量;
 ![reverse_graph](/assets/images/post/algorithm-graph/reverse_graph.png)
 
-This is the KosarajuSCC algorithm, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/strongly_connected_components.hpp).
+上面就是 KosarajuSCC 算法，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/strongly_connected_components.hpp)。
 
 ```
 KosarajuSCC(const Digraph& g): marked_(g.V(), false), id_(g.V(), 0), count_(0){ 
@@ -626,55 +624,55 @@ void dfs_recur(const Digraph& g, int v) {
 }
 ```
 
-The time complexity of the KosarajuSCC algorithm is $O(E+V)$, where reversing the graph has a time complexity of $O(E+V)$, computing the topological sort has a time complexity of $O(E+V)$, and the DFS on the original graph has a time complexity of $O(E+V)$. The space complexity is $O(V)$.
+KosarajuSCC 算法的 Time Complexity 为 $O(E+V)$, 其中 reverse graph Time Complexity 为 $O(E+V)$, 计算 topological sort Time Complexity 为 $O(E+V)$, 原图 DFS Time Complexity 为 $O(E+V)$。Space Complexity 为 $O(V)$。
 
-## Minimum Spanning Tree (MST) for Undirected Graphs
+## 无向图的最小生成树问题(Minimum Spanning Tree)
 
-A spanning tree of a connected graph is a tree that includes all the vertices of the graph. For example, the black edges in the following tree form a spanning tree of the undirected graph.
+连通图的生成树是一颗包含所有顶点的树，比如以下黑色边构成的树就是该无向图的一颗生成树。
 ![minimum_spanning_tree](/assets/images/post/algorithm-graph/minimum_spanning_tree.png)
-The spanning tree has some very obvious properties:
-1. All vertices in the graph are connected by the edges of the tree;
-2. The number of edges in the spanning tree is (V-1);
-3. Adding any edge will form a cycle in the spanning tree;
+可以看到生成树有一些非常明显的性质：
+1. 图所有顶点通过树的边互相连通;
+2. 生成树边数为(V-1);
+3. 任意增加一条边都会在生成树中形成一个环;
 
-The spanning tree of an undirected graph studies the connectivity of the undirected graph. An undirected graph can have multiple spanning trees. For example, choosing the <5-1> edge in the above graph and removing the <5-7> edge will result in another spanning tree.  
+无向图的生成树研究的是无向图的连通性问题，一个无向图可以有多个生成树，比如选择上图的 <5-1> 边，去掉 <5-7> 边，就可以得到另外一颗生成树。  
 [TODO] graph 
 
-The minimum spanning tree problem studies the *spanning tree with the minimum total edge weight in a weighted undirected graph*.
+最小生成树问题则是研究：*带权无向图中边权值总和最小的生成树*。
 
-This problem plays a very important role in the field of graph connectivity research. For example, in the field of circuits, it studies how to use the least number of wires to connect all components. In the field of infrastructure, it studies how to pave the least amount of cement roads to connect all villages.
+这类问题在研究图的连通性领域有非常重要的作用，比如在电路领域研究如何使用最少的连线使得所有组件都能连通，比如在基础设施领域研究如何铺设最少的水泥路使得各个村庄之间互相连通。
 
-This problem has developed very mature algorithms such as PrimMST and KruskalMST, which can solve the problem in Time Complexity $O(E*logV)$ and $O(E*logE)$ respectively, and even more complex algorithms like Fredman-Tarjan $O(E+VlogV)$ and Chazelle nearly $O(E)$.
+该问题已经发展出了非常成熟的 PrimMST 和 KruskalMST 算法，可以分别在 Time Complexity $O(E*logV)$ 和 $O(E*logE)$ 下解决该问题，甚至是更加复杂的 Fredman-Tarjan $O(E+VlogV)$ 算法和 Chazelle nearly $O(E)$ 算法。
 
-The minimum spanning tree problem for directed graphs is called the minimum cost arborescence problem.
+有向图的最小生成树问题则被称为最小树型图问题 minimum cost arborescence。
 
-### Cut Property
+### 割(Cut property)
 
-Both PrimMST and KruskalMST algorithms are based on the Cut property.
+PrimMST 和 KruskalMST 算法都基于 Cut property。
 
-The concept of Cut property is easy to understand. Imagine the graph as a cake. *Cutting the cake into two parts in any way (not necessarily into two equal halves) is called a Cut*. More rigorously, dividing the vertices of the graph into two non-empty disjoint sets is called a Cut. The edges connecting the two non-empty disjoint sets are called crossing edges.
+Cut property 的概念也很容易理解，形象来讲，想象图是一块蛋糕，*以任何一种方式将蛋糕切分成两个部分(不是切成相同的两半哦)，我们称这种划分方式为一种 Cut*。更加严谨的说法是，将图的顶点划分成两个非空不相交的点集的方式，我们称为一种 Cut。连接两个非空不相交的点集的边称为 crossing edge。
 
-In the following figure, the division of gray and white vertex sets is a valid Cut, and the red edges are the crossing edges.
+下图中灰色顶点集和白色顶点集的划分就是一种有效的 Cut，红色的边就是 Cut 经过的边，都是 crossing edge。
 ![cut property](/assets/images/post/algorithm-graph/cut_property.png)
 
-The reason for studying Cut and crossing edges is that for a specific spanning tree, *a crossing edge of a Cut must be an edge of the spanning tree*, because the crossing edge determines the connectivity of the two non-empty disjoint sets.
+而研究 Cut 和 crossing edge 的原因在于，对于特定的生成树而言，*一个 Cut 的某个 crossing edge 一定是该生成树的边*，因为 crossing edge 决定了两个非空不相交的点集的连通性。
 
-For the minimum spanning tree problem, *the crossing edge with the smallest weight in a Cut must be an edge of the MST (Minimum Spanning Tree)*, because it can be easily proven by contradiction that choosing the smallest crossing edge in a Cut always results in a spanning tree with a smaller total edge weight.
+对于最小生成树问题，*一个 Cut 中 weight 最小的 crossing edge 则一定是 MST(Minimum Spanning Tree) 的边*，因为反证法容易证明选择 Cut 中最小 crossing edge 总能获取到边权值总和更小的生成树。
 
-The difference between PrimMST and KruskalMST algorithms lies in how they choose the smallest crossing edge.
+PrimMST 和 KruskalMST 算法的区别在于如何选择最小的 crossing edge。
 
-### PrimMST Algorithm
+### PrimMST 算法
 
-The way PrimMST algorithm chooses the smallest crossing edge is very natural: *Starting from a single vertex Cut, adding a new MST vertex in each round, adding new crossing edges, and forming a new Cut*.
+PrimMST 算法选择最小的 crossing edge 的方式非常自然： *从单个顶点的 Cut 开始，每一轮增加一个 MST vertex，增加新的 crossing edges，再形成新的 Cut*。  
 
 [TODO] graph
 
-The Cut of a single vertex is simple. The adjacent edges of the starting vertex form the crossing edge set of the Cut. Choosing the smallest crossing edge from it is *an effective edge of the minimum spanning tree, and the other vertex of the edge is a new MST vertex*. This is determined by the property of any Cut mentioned in the previous section.
+单个顶点的 Cut 很简单，起始顶点的所有临接边就是该 Cut 的 crossing edge set，从中选择最小的 crossing edge，它就是*最小生成树的一条有效边，边的另外一个顶点就是另一个 MST vertex*。 这是上一个小节讲的由任意 Cut 性质决定的。
 
-Adding all adjacent edges of the new MST vertex to the previous edge set forms a new crossing edge set, and then choosing the smallest crossing edge from it. By obtaining a new MST vertex in each round and constructing a new crossing edge set, we can ensure that we have obtained the complete MST after obtaining V-1 crossing edges.
+将 new MST vertex 的所有临接边加入到之前的边集合中，就可以形成新的 crossing edge set，然后再选择其中最小的 crossing edge。通过这种每一轮获取一个 new MST vertex，构造 new crossing edge set 的方式，我们可以在获取 V-1 个 crossing edge 之后就可以确保获得了完整的 MST。
 
-* Lazy PrimMST Algorithm  
-The above method is our Lazy PrimMST algorithm. It is called lazy because it *delays filtering out some non-crossing edges*. For example:
+* Lazy PrimMST 算法    
+上面这种方法就是我们的 Lazy PrimMST 算法，之所以是 lazy 的是因为会*延迟过滤掉一些不是 crossing edge 的边*。举个例子：
 
 [TODO] graph
 
@@ -704,10 +702,10 @@ pre MST vertices set: {1, 2, 4}
 crossing edge set: {<1, 4, 5.1>}
 choose: <1, 4, 5.1>  // NOT LEGAL !!! 
 // Because <1, 4, 5.1> is not crossing edge anymore, 
-// its start vertex and end vertex don't belong to different disjoint vertices set.
+// its start vertex and end vertex doesn't belong to different disjoint vertices set.
 ```
 
-The Lazy PrimMST algorithm is implemented as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/lazy_prim_mst.hpp).
+Lazy PrimMST 算法实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/lazy_prim_mst.hpp)。
 
 ```
 LazyPrimMST(const UndirectedGraph &g) : marked_(g.V(), false), mst_weight_(0.0)
@@ -734,20 +732,20 @@ void visit(const UndirectedGraph &g, int v)
 {
     marked_[v] = true;
     auto pair = g.Adj(v);
-    // scan all adjacent edges of v
+    // scan all adjective edges of v
     // ignore the non-crossing edges here if possible
     std::for_each(pair.first, pair.second, [&](const Edge &e)
                     { if(!marked_[e.Dest()])  pq_.push(e); });
 }
 ```
 
-Due to the existence of non-crossing edges, the number of edges in the priority queue may reach $O(E)$ level, so the time and space complexity of the Lazy PrimMST algorithm are: Time Complexity: $O(E*logE)$, Space Complexity: $O(E)$.
+由于 non-crossing edge 的存在，优先队列中的边个数可能达到 $O(E)$ 级别，所以 Lazy PrimMST 算法的时空复杂度为: Time Complexity: $O(E*logE)$, Space Complexity: $O(E)$。
 
-For sparse graphs, the time complexity of the Lazy PrimMST algorithm is acceptable, and the implementation is relatively simple. For dense graphs, where E reaches millions or tens of millions, special handling of non-crossing edges is required, which is the PrimMST algorithm.
+对于 sparse graph 而言，Lazy PrimMST 算法 Time Complexity 是可用的，实现上也比较简单。对于 dense graph 而言，比如 E 达到了百万或者千万级别，就需要特殊处理 non-crossing edge，而这就是 PrimMST 算法。
 
-* PrimMST Algorithm  
+* PrimMST 算法  
 
-Since the smallest crossing-edge is chosen to be added to the MST each time, for the priority queue, only the edges with the smallest weight from non-MST vertices to MST vertices need to be maintained, as they are the only ones that may be chosen. For example:
+由于每次都是选择最小的 crossing-edge 加入 MST，则对于优先队列而言，可以只维护从 non-MST vertices 到 MST vertices 中 weight 最小的边即可，只要它才可能会被选择。举个例子：
 
 ```
 Exist edges:
@@ -755,29 +753,29 @@ Exist edges:
 <1, 3, 2.1>
 <3, 2, 1.0>
 
-start MST vertex: 1
+start MST vertice: 1
 
 Round1:
-pre MST vertex set: {1}
+pre MST vertice set: {1}
 crossing edge set: {<1, 2, 5.1>, <1, 3, 2.1>}
 choose: <1, 3, 2.1>
 MST edge set:  {<1, 3, 2.1>}
 
 Round2:
-pre MST vertex set: {1, 3}
-we find that weight(1->3->2) < weight(1->2), so we replace <1, 2, 5.1> with <3, 2, 1.0>
+pre MST vertice set: {1, 3}
+we finds that weight(1->3->2) < weight(1->2), so we replace <1, 2, 5.1> with <3, 2, 1.0>
 crossing edge set: {<3, 2, 1.0>}
 choose: <3, 2, 1.0>
 MST edge set:  {<1, 3, 2.1>, <3, 2, 1.0>}
 ```
 
-The implementation of the PrimMST algorithm relies on IndexPriorityQueue, a variant of PriorityQueue that supports associating each key with an external index to directly modify the PriorityQueue key based on the external index and then adjust to maintain the heap property. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/prim_mst2.hpp).
+实现 PrimMST 算法需要依赖 IndexPriorityQueue，它是 PriorityQueue 的变种，支持给每个 key 关联一个外部 index，以便根据外部 index 直接修改 PriorityQueue key，然后再调整保持堆性质。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/prim_mst2.hpp)。
 
 ```
 PrimMST(const UndirectedGraph &g) : edge_to_(g.V()), marked_(g.V(), false),
                                          weight_to_(g.V(), std::numeric_limits<double>::infinity()), mst_weight_(0.0), pq_(g.V())
 {
-    // the distance of initial vertex 0 to the mst is 0
+    // the distance of initial vertice 0 to the mst is 0
     weight_to_[0] = 0.0;
     pq_.Insert(0, 0.0);
 
@@ -800,7 +798,7 @@ void visit(const UndirectedGraph &g, int v)
                     {
                     // ignore all non-crossing edges
                     if(!marked_[e.Dest()]) {
-                        // update non-tree vertex if the new-added vertex has a shorter path to mst
+                        // update non-tree vertice if the new-added vertice has a shorter path to mst
                         if(e.Weight() < weight_to_[e.Dest()]) {
                             weight_to_[e.Dest()]=e.Weight();
                             // edge_to_ will converge to the mst
@@ -813,16 +811,16 @@ void visit(const UndirectedGraph &g, int v)
 }
 ```
 
-Since the priority queue only maintains the smallest edge weight from non-tree vertices to MST vertices, the space complexity is $O(V)$.  
-The time complexity is $O(E*logV)$, as the number of updates to the priority queue is $O(E)$, and each heap adjustment is $O(logV)$.
+由于优先级队列中只维护 non-tree vertices 到 MST vertices 的最小 edge weight，所以 Space Complexity 为 $O(V)$。  
+Time Complexity 为 $O(E*logV)$, 因为对优先队列的更新次数是 $O(E)$，每次堆调整是 $O(logV)$。
 
-### KruskalMST Algorithm 
+### KruskalMST 算法 
 
-The KruskalMST algorithm chooses the smallest crossing edge by continuously selecting the minimum weight edge from all edges and determining whether it is a crossing edge to decide if it belongs to the MST. The way to determine if an edge is a crossing edge is that its two vertices cannot both belong to the MST vertices.
+KruskalMST 算法在选择最小的 crossing edge 方式上，直接从所有边中持续选择 minimum weight edge，通过检测该边是否属于 crossing edge 来决定它是否属于 MST。检测该边是否属于 crossing edge 的方式就是：该边的两个顶点不能都属于 MST vertices。
 
-The correctness of this algorithm can also be proven by contradiction: if an edge is already the minimum crossing edge among all edges, it must be the minimum crossing edge in some Cut, and it must belong to the MST.
+该算法的正确性也可以用反证法的方式证明：如果某条边已经是当前所有边中 minimum crossing edge, 则它一定是某个 Cut 中的 minimum crossing edge，它一定属于 MST。
 
-The algorithm implementation is as follows, relying on the Union-Find algorithm to determine if an edge is a crossing edge. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp).
+算法实现如下，它需要依赖 Union-Find 算法检测 edge 是否是 crossing edge。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp)。
 
 ```
 KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf_(g.V()), mst_weight_(0.0) {
@@ -837,13 +835,137 @@ KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf
 }
 ```
 
-The time complexity of the KruskalMST algorithm is $O(E*logE)$, where Union-Find can perform Connected and Union operations in nearly $O(1)$ time, and each heap adjustment has a time complexity of $O(logE)$, with $O(E)$ adjustments.  
-The space complexity is $O(E)$, as the number of edges stored in the priority queue is $O(E)$.
-### Directed Acyclic Graph (DAG) and AcyclicSP Algorithm
+KruskalMST 算法的 Time Complexity 为 $O(E*logE)$，其中 Union-Find 能以渐近 $O(1)$ 的方式实现 Connected 和 Union 操作，每次堆调整 Time Complexity 为 $O(logE)$，调整次数为 $O(E)$。  
+Space Complexity 为 $O(E)$，其中优先队列中存储边个数为 $O(E)$。
 
-When there are negative weights in the graph, the DijkstraSP algorithm cannot be used because the distance from the intermediate vertex to the source vertex is not increasing, so using a greedy algorithm to select the closest vertex to the source vertex as the SPT vertex in each round cannot provide theoretical guarantees.
+## 图的最短路径问题(Shortest Path Problem)
 
-This section discusses solving the Shortest Path in a DAG with negative weights. A very important feature of a DAG is that **a DAG can obtain a topological order**, which reflects the dependency relationships between vertices. By relaxing vertices according to the topological order, we can rely on the chain derivation relationship to know that all possible distances from the current vertex to the source vertex have been calculated once, and all precedence vertices have also been calculated once, and all pre-precedence vertices have also been calculated once... For example:
+图的最短路径问题是图的另一类更加有趣且有意义的问题，一般而言它关注的是单源最短路径(Single Source Shortest Path)，从源顶点到图中其他顶点的路径构成一颗最短路径树(SPT, Shortest Paths Tree)。
+![shortest paths tree](/assets/images/post/algorithm-graph/spt.png)
+
+对应于现实生活，就是从地点 A 出发，如何选择路线使得到地点 B 经过的路线长度最短。有些时候，图中边的权值不一定就是对应路径长度，它可以是问题相关的指标，比如我们如果关注的是地点 A 到地点 B 之间耗时最短，则边的权值应该是路径耗时，比如 100 米堵车情况下需要 1 小时才能通过，我们可能更加倾向于选择更远的 1000 米只要 10 分钟就能通过的路线。
+
+单源最短路径问题在无向图和有向图上解法是一样的，因为它们关注的都是从源点开始的下一跳。这类问题可以认为已经被很好得解决了，只是需要特殊处理这类问题中存在的一些特别场景，比如存在负权值边或者负权值环。针对不同的场景，可以选择不同的更快的算法，或者使用通用算法。
+1. 非负权值图和 DijkstraSP 算法
+2. DAG 和 AcyclicSP 算法
+3. 一般图和 Bellman-FordSP 算法
+
+在讲解不同算法之前，需要了解 Shortest Path 问题的一个*非常重要的性质*。对于任何一个从源点 s 到目的点 t 的简单最短路径: s -> v1 -> v2 -> ... -> vn -> t，从源点 s 到该最短路径的任何中间顶点都是简单最短路径，比如：
+1. 源点 s 到中间顶点 v2 也是简单最短路径: s -> v1 -> v2
+2. 源点 s 到中间顶点 vn 也是简单最短路径: s -> v1 -> v2 -> ... -> vn
+
+这个性质和正负权值无关，它可以用反证法非常容易证明，因为如果源点 s 到该最短路径的任何中间顶点 vi 不是简单最短路径，则说明存在更短的路径到达目的点 t: s -> w1 -> w2 -> ... -> vi -> ... -> vn -> t，这个和假设是冲突的。
+
+> 如果路径是个简单路径，则说明中间不存在负权值环，否则就可以持续通过负权值环构造更短的路径。
+
+这个性质重要点在于：
+1. 假如所有的权值都是非负的，则对于一条简单路径而言，它的中间顶点到源顶点的距离是递增的，这是 DijkstraSP 算法可以使用 greedy 算法解决 SP 问题的基础。
+2. 对于存在负权值的 DAG，如果已知所有顶点的拓扑序，自然能沿着理论上的最短路径更新所有顶点到源顶点的最短距离。
+3. 假如存在正负权值，由于源顶点到所有中间顶点 vi 都是简单最短路径，我们可以在每一轮都构造一个中间顶点，则 V-1 轮后也一定能构造出 s -> v1 -> v2 -> ... -> vn -> t，这是 Bellman-Ford 通用算法求解 SP 问题的基础。
+
+### 非负权值图和 DijkstraSP 算法
+
+为了简化 SP 问题，我们考虑只存在非负权值边，这在很多场景中也是非常合理的，比如求两点间最短路径，求两点间最短耗时等。
+
+正如上面说的，非负权值边带来的一个性质就是: *简单路径上中间顶点到源顶点的距离是递增的*，通过每轮选择其中离源顶点 closest vertex A 作为 SPT vertex，就可以构造出 SPT。因为没有负权值边，所以不可能存在通过其他顶点到 vertex A 的更短路径了，所以 vertex A 一定是 SPT vertex。
+
+这里涉及到一个非常重要的操作 relax，它的意思是指每一轮选中 new SPT vertex，就可以通过它的邻接边去更新其他 non-SPT vertex 到源顶点的距离。举个例子：
+
+```
+Exist edges:
+<1, 2, 5.1>
+<1, 3, 2.1>
+<3, 2, 1.0>
+
+source vertice: 1
+>> original dist 1->2: 5.1
+>> new dist 1->3->2: 3.1, through vertice 3, we relax the dist from 1 to 2.  
+```
+
+通过这种 greedy 的方式，我们在选择了 V-1 个 SPT vertex 就可以构造出 SPT， 并回答从源点 s 到其他顶点的最短距离。
+
+* DijkstraSP 算法  
+DijkstraSP 算法中，我们同样使用 IndexPriorityQueue 维护所有顶点到源顶点的最小距离，算法流程和 PrimMST 算法基本一样，不同在于 PrimMST 算法在 IndexPriorityQueue 维护的是所有顶点到 MST vertices 的最小权重。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/DijkstraSP.hpp)。
+
+```
+DijkstraSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity()), pq_(g.V())
+{
+    dist_to_[s] = 0.0;
+    pq_.Insert(s, 0.0);
+
+    while (!pq_.IsEmpty())
+    {
+        auto i = pq_.Pop();
+        visit(g, i);
+    }
+}
+void visit(const Digraph &g, int v)
+{
+    auto pair = g.Adj(v);
+    std::for_each(pair.first, pair.second, [&](const Edge &e)
+                    { relax(e); });
+}
+
+void relax(const Edge &e)
+{
+    double dist = dist_to_[e.Src()] + e.Weight();
+    if (dist < dist_to_[e.Dest()])
+    {
+        edge_to_[e.Dest()] = e;
+        dist_to_[e.Dest()] = dist;
+        if (pq_.ContainsIndex(e.Dest()))
+            pq_.Change(e.Dest(), dist);
+        else
+            pq_.Insert(e.Dest(), dist);
+    }
+}
+```
+
+DijkstraSP 算法 Time Complexity 为 $O(E*logV)$，其中 $O(E)$ 是 relax 的次数，$O(logV)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(V)$。
+
+* Lazy DijkstraSP 算法  
+类似 Lazy PrimMST 算法，也可以实现 Lazy DijkstraSP 算法，对于 sparse graph 而言，可以通过不断获取 minimum weight edge 的方式 relax vertice，因为 edge weight 都是非负的，所以最后一定可以收敛并获得 SPT。[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/lazy_DijkstraSP.hpp)。
+
+```
+LazyDijkstraSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
+{
+    dist_to_[s] = 0.0;
+    visit(g, s);
+
+    while (!pq_.empty())
+    {
+        auto e = pq_.top();
+        pq_.pop();
+        relax(g, e);
+    }
+}
+
+void visit(const Digraph &g, int v)
+{
+    auto pair = g.Adj(v);
+    std::for_each(pair.first, pair.second, [&](const Edge &e)
+                    { pq_.push(e); });
+}
+
+void relax(const Digraph &g, const Edge &e)
+{
+    double dist = dist_to_[e.Src()] + e.Weight();
+    if (dist < dist_to_[e.Dest()])
+    {
+        dist_to_[e.Dest()] = dist;
+        edge_to_[e.Dest()] = e;
+        visit(g, e.Dest());
+    }
+}
+```
+
+Lazy DijkstraSP 算法 Time Complexity 为 $O(E*logE)$，其中 $O(E)$ 是 relax 的次数，$O(logE)$ 是单次堆调整的时间复杂度。Space Complexity 为 $O(E)$。
+
+### 有向无环图(DAG)和 AcyclicSP 算法
+
+当图中存在负权值时，DijkstraSP 算法就无法使用了，因为最短路径中中间顶点到源顶点的距离不是递增的，所以使用 greedy algorithm 在每轮选择离源顶点 closest vertex 作为 SPT vertex 就无法提供理论上的保证。
+
+这一小节讨论存在负权值边的 DAG 中 Shortest Path 求解。DAG 一个非常重要的特性就是 **DAG 可以获取到 topological order**，而 topological order 反映的是 vertex 之间入边的依赖关系。按照 topological order 对 vertex 进行 relax, 我们可以依赖链式推导关系知道，current vertex 离源点所有可能的 dist 都被计算了一次，并且 all precedence vertices 也被计算了一次, all pre-precedence vertices 也被计算了一次...。举个例子：
 
 ```
 Exist edges:
@@ -854,15 +976,15 @@ Exist edges:
 
 For this graph, its topological order is {1, 2, 3, 4}, 
 so we can get the minimum dist from 1 to 4 is 3, not 5, 
-because we know that after relaxing vertex 3, 
+because we know that after relax vertex 3, 
 no other vertex can relax the dist from 1 to 4.
 
-If we relax the vertex in the order {1, 2, 4, 3}, 
-then we may think that the minimum dist from 1 to 4 is 5, 
-because we have no idea when we can get the minimum dist in a casual relax sequence.
+If we relax the vertex at order {1, 2, 4, 3}, 
+then we may think that minimum dist from 1 to 4 is 5, 
+because we have no idea when we can get the minimum dist at a casual relax sequence.
 ```
 
-The implementation based on the DAG topological order is as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/acyclicSP.hpp).
+基于 DAG topological order 实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/acyclicSP.hpp)。
 
 ```
 AcyclicSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
@@ -878,7 +1000,7 @@ AcyclicSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), s
 void relax_all(const Digraph &g, const std::vector<int> &vs)
 {
     int st = 0;
-    // skip precedence vertices to src_
+    // skip precedence vertice to src_
     // they are all unreachable
     for (; st < (int)vs.size(); ++st)
     {
@@ -904,41 +1026,42 @@ void relax(const Edge &e)
 }
 ```
 
-The AcyclicSP algorithm has a time complexity of $O(E+V)$, where calculating the DAG topological order has a time complexity of $O(E+V)$, and relaxing vertices based on the topological order has a time complexity of $O(E+V)$. The space complexity of the AcyclicSP algorithm is $O(V)$.
+AcyclicSP 算法 Time Complexity 为 $O(E+V)$, 其中计算 DAG topological order Time Complexity 为 $O(E+V)$, 而基于 topological order 进行 relax vertice Time Complexity 为 $O(E+V)$。
+AcyclicSP 算法 Space Complexity 为 $O(V)$.
 
-### General Graph and Bellman-FordSP Algorithm
+### 一般图和 Bellman-FordSP 算法
 
-The above discussion covers some special graph shortest path solutions, where the DijkstraSP algorithm relies on non-negative weights, and the AcyclicSP algorithm relies on a DAG. For graphs with both positive and negative weights and the presence of positive and negative cycles, a more general Bellman-Ford algorithm is needed.
+以上讨论的都是一些特殊图的最短路径解法，其中 DijkstraSP 算法依赖非负权值，AcyclicSP 算法依赖 DAG，对于存在正负权值且有正负环存在的图，就需要更加通用的 Bellman-Ford 算法。
 
-For solving the shortest path problem, the presence of positive cycles does not affect the result, so we do not consider positive cycles. If a negative cycle is reachable from the source vertex, all vertices on the negative cycle cannot construct the shortest path because a shorter path can always be constructed along the negative cycle.
+对于求解最短路径问题，正环的存在不影响结果，所以我们不考虑正环。从源顶点开始如果经过负环，则认为负环上的所有顶点都无法构造最短路径，因为沿着负环总可以构造出更短的路径。
 
-For a general graph, we define the shortest path as:
-1. **If the source vertex is unreachable**, there is no shortest path, and the distance is positive infinity.
-2. **If the source vertex is reachable**, but it is a vertex on a negative cycle, there is no shortest path, and the distance is negative infinity.
-3. **If the source vertex is reachable**, and it is not a vertex on a negative cycle, there is a simple shortest path.
+对于一般图而言，我们定义最短路径为：
+1. **如果从源顶点不可达**，则不存在最短路径，距离为正无穷大 infinity；
+2. **如果从源顶点可达**，但是为负环上的顶点，则不存在最短路径，距离为负无穷大 -infinity；
+3. **如果从源顶点可达**，且不是负环上的顶点，则存在简单最短路径；
 
-The Bellman-Ford algorithm is based on this intuition:
-*For a directed graph without a negative cycle reachable from the source vertex, relaxing all edges in any order in each round will obtain at least one SPT vertex. After V-1 rounds, the SPT will be obtained.*
+Bellman-Ford 算法基于这样的直觉：
+*对于不存在源顶点可达负环的有向图，在每轮中，以任意顺序对所有的 edge 进行 relax，至少可以获得 1 个 SPT vertex。进行 V-1 轮后一定可以获得 SPT。*
 
-This intuition may seem **unreasonable** at first glance, so let's consider a shortest path:
+这是一个第一眼看起来**不太合理**的直觉，所以我们看下假如图中存在一个最短路径: 
 s -> v1 -> v2 -> v3 -> t
-For the Bellman-Ford algorithm, if s -> v1 -> v2 is found in round i, then v3 can be found in round i+1 by relaxing edges in any order.
+对于 Bellman-Ford 算法而言，如果在 round i 找到了 s -> v1 -> v2，则在 round i+1 以任意顺序 relax edge 都一定可以找到 v3。
 
-This conclusion is valid because in round i+1, relaxing edges in any order will not change s -> v1 -> v2 since they are already the shortest paths. When relaxing the adjacent edges of v2, dist_to[v3] will be updated to dist_to[v2] + weight(v2, v3), which is the minimum value of dist_to[v3] because we assumed the existence of the shortest path s -> v1 -> v2 -> v3 -> t.
+这个结论是成立的，因为在 round i+1 以任意顺序 relax edge，s -> v1 -> v2 不会有任何变更，因为他们已经都是最短路径了，此时以任意顺序 relax v2 的邻接边时，dist_to[v3] 会被更新成 dist_to[v2] + weight(v2, v3), 而这就是 dist_to[v3] 的最小值，因为我们假设了存在 s -> v1 -> v2 -> v3 -> t 这样一条最短路径。
 
-> Even if there is a shorter path v2 -> v4 -> v3, v4 can be found in round i+1, and v3 can be found in round i+2. This does not contradict our initial assumption, but it illustrates that the principles are the same.
+> 即使存在 v2 -> v4 -> v3 这样的路径更短，也可以在 round i+1 找到 v4, 在 round i+2 找到 v3, 当然这和我们一开始的假设已经不一致了，只是为了说明他们的原理都是一样的。
 
-The Bellman-Ford algorithm can be considered a brute-force solution, theoretically proving that relaxing edges in any order can obtain the SPT after V-1 rounds. If a negative cycle reachable from the source vertex exists, it cannot end after V-1 rounds, so the existence of a negative cycle in the original graph can be detected after V-1 rounds.
+Bellman-Ford 算法可以认为是一种暴力解法，理论上证明了即使以任意顺序 relax edge 也可以在 V-1 轮后获取 SPT。如果存在源顶点可达的负环，则无法在 V-1 轮后结束，所以可以在 V-1 轮后就检测 SPT 是否存在环，从而检测原始图中负环的存在。
 
-* Lazy Bellman-FordSP Algorithm  
+* Lazy Bellman-FordSP 算法  
 
-The above description is the Lazy Bellman-FordSP algorithm, which includes the source vertex and directly performs V rounds of relaxation. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp).
+上面描述的是 Lazy Bellman-FordSP 算法，包括源顶点，直接进行 V 轮 relax，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp)。
 
 ```
 LazyBellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
 {
     dist_to_[s] = 0.0;
-    // for any digraph without negative cycles, it will converge to spt after V rounds
+    // for any digraph without negative cycles, it will converge to spt after V round
     for (int r = 0; r < g.V(); ++r)
     {
         for (int v = 0; v < g.V(); ++v)
@@ -959,7 +1082,7 @@ LazyBellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(
 void findNegativeCycle()
 {
     std::vector<bool> marked(edge_to_.size(), false);
-    int negative_cycle_vertex = -1;
+    int negative_cycle_vertice = -1;
     for (int i = 0; i < (int)edge_to_.size() && !has_negative_cycle_; ++i)
     {
         if (marked[i])
@@ -972,7 +1095,7 @@ void findNegativeCycle()
             if (w == i)
             {
                 has_negative_cycle_ = true;
-                negative_cycle_vertex = i;
+                negative_cycle_vertice = i;
                 break;
             }
         }
@@ -981,8 +1104,8 @@ void findNegativeCycle()
     if (has_negative_cycle_)
     {
         // get negative cycle
-        int w = negative_cycle_vertex;
-        while (edge_to_[w].Src() != negative_cycle_vertex)
+        int w = negative_cycle_vertice;
+        while (edge_to_[w].Src() != negative_cycle_vertice)
         {
             negative_cycle_.push_back(edge_to_[w]);
             w = edge_to_[w].Src();
@@ -992,20 +1115,21 @@ void findNegativeCycle()
 }
 ```
 
-The Lazy Bellman-FordSP algorithm has a time complexity of $O(E*V)$, where $O(V)$ rounds are needed, and each round requires relaxing $O(E)$ edges. The space complexity is $O(V)$.
+Lazy Bellman-FordSP 算法的 Time Complexity 为 $O(E*V)$，其中需要进行 $O(V)$ 轮，每一轮需要 relax $O(E)$ 条边。空间复杂度为 $O(V)$。
 
-* Bellman-FordSP Algorithm  
 
-A more efficient Bellman-FordSP algorithm only uses vertices updated in the previous round for relaxation because only their adjacent edges will cause other vertices' distances to the source vertex to be updated.
+* Bellman-FordSP 算法  
 
-The specific implementation is as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/Bellman_Ford.hpp).
+更高效率的 Bellman-FordSP 算法只会使用上一轮被 update 过的 vertex 进行 relax，因为只有他们的邻接边才会导致其他顶点到源顶点的距离被更新。
+
+具体实现如下，[完整实现版本链接](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/Bellman_Ford.hpp)。
 
 ```
 BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity()), on_que_(g.V(), false)
 {
     dist_to_[s] = 0.0;
     on_que_[s] = true;
-    // start from the source vertex
+    // start from the source vertice
     que_.push(s);
     int round=0;
     while (!que_.empty())
@@ -1019,7 +1143,7 @@ BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(
                     if(e.Weight()+dist_to_[e.Src()] < dist_to_[e.Dest()]) {
                     edge_to_[e.Dest()]=e;
                     dist_to_[e.Dest()]=e.Weight()+dist_to_[e.Src()];
-                    // if vertex is not on queue, push it for next round
+                    // if vertice is not on queue, push it for next round
                     if(!on_que_[e.Dest()]) {
                         que_.push(e.Dest());
                         on_que_[e.Dest()]=true;
@@ -1027,7 +1151,7 @@ BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(
                     } });
 
         
-        // a digraph without negative cycles will converge at V rounds
+        // a digraph without negative cycles will converge at V round
         if(++round%g.V()==0) {
             findNegativeCycle();
             break;
@@ -1036,7 +1160,7 @@ BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(
 }
 ```
 
-The Bellman-FordSP algorithm generally has a time complexity of $O(E+V)$, where on average, only one vertex will be relaxed in each round, and a total of $O(E)$ edges will be relaxed. The worst-case time complexity is the same as the Lazy Bellman-FordSP algorithm, which is $O(E*V)$. The space complexity is $O(V)$.
+Bellman-FordSP 算法一般情况下 Time Complexity 可以达到 $O(E+V)$，其中大概平均每一轮只有 1 个 vertice 会被 relax，总共有 $O(E)$ 条边被 relax。Worst Time Complexity 和 Lazy Bellman-FordSP 算法一样都是 $O(E*V)$。空间复杂度为 $O(V)$。
 
-## Summary
-This article covers the basics of common graph algorithms in Algorithms 4. [Complete code link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph).
+## 总结
+本篇为算法 4 中图相关常见算法的基础。[完整代码链接](https://github.com/maxshuang/Demo/tree/main/algorithm/algorithm/graph)。
