@@ -124,7 +124,7 @@ Therefore, for the implementation of atomic variables, the following mechanisms 
 
 Through these mechanisms, the kernel provides simple and intuitive atomic variable semantics, such as:
 
-```
+```cpp
 struct atomic_int {
     int v;  // a small and aligned memory
 };
@@ -138,14 +138,14 @@ int main() {
 
 Possible corresponding compilation:
 
-```
+```assembly
 // lock memory bus+ invalidate the variables in other caches
 lock addl $1, count(%rip)   
 ```
 
 The kernel provides atomic operations such as:
 
-```
+```cpp
 atomic_read(v)                // Return *v
 atomic_add(i,v)               // Add i to *v
 atomic_sub_and_test(i, v)     // Subtract i from *v and return 1 if the result is zero; 0 otherwise
@@ -176,7 +176,7 @@ Based on the reliable consensus provided by atomic variables, we can explore the
 
 If you have experience with multi-threaded development, you are likely familiar with mutex locks, which are often the starting point. The classic interface of a mutex lock is as follows:
 
-```
+```cpp
 Mutex mux;
 mux.lock(); // or mux.tryLock();
 ...
@@ -191,7 +191,7 @@ To understand this, consider the evolution of computing. Initially, there was on
 
 With these complex concepts in place, we now need a mutual exclusion lock to ensure that different concurrent flows can reach a **consensus**: 
 
-**only one execution flow can access resources or continue execution at a time.**
+**Only one execution flow can access resources or continue execution at a time.**
 
 **How can we achieve this consensus?** 
 
@@ -227,7 +227,7 @@ To summarize:
 
 A spin lock involves waiting for the lock by polling when lock possession fails. Its classic interface is similar to a mutex lock:
 
-```
+```cpp
 SpinLock lk;
 lk.lock(); // or lk.tryLock();
 ...
@@ -248,7 +248,7 @@ User-mode spin locks, which encapsulate *atomic variables, nop, and while operat
 
 Condition variables are another crucial primitive provided by the kernel. They enable the development of locks with **higher-level semantics**, such as semaphores, read-write locks, and fence latches. Unlike mutex locks, condition variables make **waiting, condition checking, and notification explicit**. The classic interface is as follows:
 
-```
+```cpp
 ConditionVariable cv;
 Lock lk;
 cv.wait(lk, condition);
@@ -264,7 +264,7 @@ The mutex lock provides the consensus part. After acquiring the mutex lock, the 
 
 Using custom conditions, we can construct *rich synchronization semantics*. For example, if the lock check condition is `count > 0` and `count` is initialized to 6, then when calling `wait()`, any execution flow that satisfies `count > 0` can proceed. This is the **semantics of a Semaphore**. The general code implementation is as follows:
 
-```
+```cpp
 int counter = 6;
 std::mutex mtx;
 std::condition_variable cond_var;
@@ -290,7 +290,7 @@ void release_resource() {
 
 A semaphore allows multiple execution flows to occupy resources simultaneously, and those that cannot obtain the resource must wait. Its classic interface is:
 
-```
+```cpp
 counting_semaphore semaphore;
 semaphore.acquire();  // or wait()
 semaphore.release();  // or signal()
@@ -316,7 +316,7 @@ Let's explore advanced locking mechanisms based on synchronization primitives li
 
 A latch, or fence, describes a synchronization scenario where a concurrent flow A **waits for multiple concurrent flows** B, C, and D to reach a synchronization point before executing. Its classic interface is:
 
-```
+```cpp
 latch lt(5);
 lt.count_down(); // internal --counter;
 lt.wait();       // wait for counter==0
@@ -324,7 +324,7 @@ lt.wait();       // wait for counter==0
 
 Imagine a latch implementation with `counter = 3`. Concurrent streams B, C, and D wait for `counter > 0`, decrement the counter, and call `notifyAll()` when finished. Concurrent stream A waits for `counter == 0` and is awakened to execute once B, C, and D are done.
 
-```
+```cpp
 class latch {
 public:
     explicit latch(int count) : counter(count) {}
