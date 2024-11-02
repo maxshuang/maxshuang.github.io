@@ -17,74 +17,79 @@ tags: Database Transaction
 
 # Background
 
-Transaction 是数据并发读写操作的一种抽象。这种读写操作的特点是：
-1. 读写并发
-2. 可以涉及 single-object 或者 multi-objects
+Transaction is an abstraction of concurrent read and write operations on data. The characteristics of these operations are:
+1. Concurrent reads and writes
+2. Can involve single-object or multi-objects
 
-在没有 transaction 抽象之前，就需要考虑很多边界问题，比如：
-1. 操作 multi-objects 部分失败了，则成功的部分也会回滚，否则会出现数据不一致。
-2. 并发写同时读取到旧值后，然后执行自增操作，导致更新丢失。
-3. 并发读写导致读到了部分旧值，部分新值。
-4. 写操作给用户返回成功了，系统 crash 或者 power cutoff 导致数据丢失。
+Before the abstraction of transactions, many boundary issues needed to be considered, such as:
+1. If part of the operations on multi-objects fail, the successful part will also roll back, otherwise, data inconsistency will occur.
+2. Concurrent writes read the old value simultaneously and then perform increment operations, resulting in lost updates.
+3. Concurrent reads and writes lead to reading part of the old value and part of the new value.
+4. The write operation returns success to the user, but system crash or power cutoff leads to data loss.
 
-等等这些问题都可以称为**数据异常 data anomaly**。
+All these issues can be referred to as **data anomalies**.
 
-事务一般和 RDMS(Related Database Manager System) 一起出现，但是作为一种操作抽象，只要涉及到并发的 multi-objects 操作，事务都能提供一个简洁且强大的操作抽象。
+Transactions generally appear with RDMS (Related Database Manager System), but as an operational abstraction, transactions can provide a simple and powerful operational abstraction as long as concurrent multi-object operations are involved.
 
-## 基本特性
+## Basic Characteristics
 
-事务作为一种操作抽象，提供了 ACID 特性：
+As an operational abstraction, transactions provide ACID characteristics:
 1. Atomicity  
-单个事务中的多个操作，要么全部成功，要么全部失败，用户无法看到中间状态。
+Multiple operations within a single transaction either all succeed or all fail, and users cannot see intermediate states.
 
 2. Consistency  
-数据一致性，表示对数据的语义约束保持一致。这个更多是应用级别的约束，因为数据的语义是应用赋予的。举个例子：  
+Data consistency means maintaining the semantic constraints of the data. This is more of an application-level constraint because the semantics of the data are given by the application. For example:  
+
 ``` 
-用户 A（\$100）给用户 B（\$50）转账 \$10，无论如何操作，从应用语义上看要求用户 A 和用户 B 的总额是 \$150。  
-由于操作上的失误，用户A 转出 \$10 后系统 failover 了，恢复后变成了 A（\$90）, B (\$50)，此时我们说系统处于不一致状态。
+User A ($100) transfers $10 to user B ($50). No matter how the operation is performed, from the application semantics, the total amount of user A and user B should be $150.  
+Due to operational errors, user A transferred $10, and then the system failed over. After recovery, it became A ($90), B ($50). At this point, we say the system is in an inconsistent state.
 ```
 
-同时，数据的一致性也和提供数据的系统有关，比如数据库在处理并发读写时读到了不一致的数据状态，即使数据本身是一致的，用户也可能基于读取到的不一致状态做出某些操作，导致底层数据不一致。
+At the same time, data consistency is also related to the system providing the data. For example, when the database handles concurrent reads and writes, it reads an inconsistent data state. Even if the data itself is consistent, users may perform certain operations based on the inconsistent state they read, leading to underlying data inconsistency.
 
-一些数据库本身提供了某些机制约束数据语义，比如 foreign key。
+Some databases provide mechanisms to constrain data semantics, such as foreign keys.
 > NOTE:  
-> 这里的 consistency 和 data replication consistency 是两个概念。  
-> 这里的 consistency 强调的是 data semantic requirement，比如两个数的总和保持固定值。   
-> 而 data replication consistency 强调的是 recency requirement, 也就是多备份下 newest write 被什么时候看到。
+> The consistency here is different from data replication consistency.  
+> The consistency here emphasizes data semantic requirements, such as keeping the sum of two numbers fixed.   
+> Data replication consistency emphasizes recency requirements, that is, when the newest write is seen under multiple backups.
 
 3. Isolation  
-并发读写场景下数据的可见性问题。如果把事务在形式上看成多个操作的集合 tx=[op1, op2, ...], 那 isolation 描述的就是事务和事务之间数据可见性的问题，也是需要理解的难点。
+The visibility of data in concurrent read and write scenarios. If transactions are viewed as a collection of multiple operations tx=[op1, op2, ...], isolation describes the visibility of data between transactions, which is a difficult point to understand.
 
 4. Durability  
-持久性，事务提交后，即使系统崩溃也不会丢失数据，一般我们指写入本地 non-volatile 介质，比如 HDD/SSD。在一些分布式系统中可能有更高的持久性要求，比如强一致备份。
+Durability means that once a transaction is committed, the data will not be lost even if the system crashes, usually referring to writing to local non-volatile media such as HDD/SSD. In some distributed systems, there may be higher durability requirements, such as strong consistent backups.
 
 ## Isolation
 
-业务开发中，利用 SQL 读写数据库已经是个普遍的操作。许多初学者第一次学习数据库就是从如何使用 SQL 进行 CURD 开始的，甚至如果不是做后端开发相关工作，未来很长一段时间都可能在不了解 Isolation Level 的语义下使用 SQL。
+In business development, using SQL to read and write databases is already a common operation. Many beginners first learn about databases from how to use SQL for CRUD operations. Even if they do not engage in backend development-related work, they may use SQL for a long time without understanding the semantics of Isolation Levels.
 
-数据库提供 transaction 能力，单条 SQL 其实已经被 implicitly declare 成了事务，如果需要在事务中执行多条操作，就需要显式声明事务的开始、提交和回滚，比如 MySQL 中的：
+Databases provide transaction capabilities, and a single SQL statement is implicitly declared as a transaction. If multiple operations need to be executed within a transaction, the transaction needs to be explicitly declared to start, commit, and roll back, such as in MySQL:
+
 ```
 start transaction;
 commit; (or rollback;)
 ```
-事务拥有上面提及的 4 个特点，比如 atomicity 的要么全部成功，要么全部失败，但也导致了出现很多*迷思*。
 
-> NOTE：  
-> serializability 是并发事务调度的一种性质，表示并发操作的结果和单线程串行操作一致。  
-> serializable 是提供 serializability 的一个隔离级别, 也有其他一些隔离级别可以实现 serializability。
+Transactions have the four characteristics mentioned above, such as atomicity, where all operations either succeed or fail, but this also leads to many *misconceptions*.
 
-一种普遍的迷思是怀着**朴素的可串行化 serializability** 的观点使用 SQL，说得更简单点就是认为数据库是以**单线程串行化**的方式在执行 SQL。举个例子：
+> NOTE:  
+> Serializability is a property of concurrent transaction scheduling, indicating that the result of concurrent operations is consistent with single-threaded serial operations.  
+> Serializable is an isolation level that provides serializability, and there are other isolation levels that can achieve serializability.
+
+A common misconception is using SQL with the **naive view of serializability**, which means thinking that the database executes SQL in a **single-threaded serial** manner. For example:
+
 ```
 initial: A=10
 
-Transaction1 和 Transaction2 同时执行：
+Transaction1 and Transaction2 execute simultaneously:
 start transaction;
-read： select A from table B;
+read: select A from table B;
 check: if A > 9;
 write: update A=A+10 in table B;
 commit;
 ```
-在并发操作下，如果认为数据库是以*单线程串行化*的方式在执行 SQL，那么就会认为最后的结果肯定是 A=30, 因为这两个并发的 transaction 在数据库中是串行有序执行的，类似如下执行时间序列：
+
+In concurrent operations, if you think the database executes SQL in a *single-threaded serial* manner, you would expect the final result to be A=30 because these two concurrent transactions are executed serially in the database, similar to the following execution timeline:
 
 | timestamp | Transaction1 |  Transaction2 |
 |------|-------|----|
@@ -97,7 +102,7 @@ commit;
 | t6   |    | if A > 9; update A=A+10 in table B; (A=30)  |
 | t7   |    | commit; |
 
-但是实际上，如果你使用默认的数据库隔离级别，在并发写的场景下大概率结果是 A=20，出现了更新丢失问题。
+But in reality, if you use the default database isolation level, the result is likely to be A=20 in concurrent write scenarios, resulting in lost updates.
 
 | timestamp | Transaction1 |  Transaction2 |
 |------|-------|----|
@@ -108,21 +113,21 @@ commit;
 | t4   |    | if A > 9; update A=A+10 in table B; (A=20)  |
 | t5   | commit;   | commit; |
 
-这里认知偏差的原因在于： 
-**数据库为了提高事务并发读写性能，会默认不使用甚至不提供 serializability 这种最符合线性思维的事务并发读写保证。**
+The reason for this cognitive bias is: 
+**To improve the performance of concurrent read and write transactions, the database will by default not use or even provide serializability, which is the most consistent guarantee with linear thinking for concurrent read and write transactions.**
 
-不理解 Isolation Level 就可能会在未来的某个时间节点触发数据异常，让我们跟随数据异常的脚步看下数据库已经为我们提供了什么样的约束。
+Not understanding Isolation Levels may trigger data anomalies at some point in the future. Let's follow the footsteps of data anomalies to see what constraints the database has already provided for us.
 
-我们使用 MySQL 提供的[隔离级别](https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html)作为例子，其他数据库需要去对应的官网中查看对应隔离级别的语义，因为这个和数据库的实现有关。
+We use the [isolation levels](https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html) provided by MySQL as an example. For other databases, you need to check the corresponding official website for the semantics of the corresponding isolation levels, as this is related to the implementation of the database.
 
 ### Dirty Read/Write And Read Committed
 
-只考虑 ACID 中的 ACD(因为 Isolation 是我们现在要讨论的)，我们基本只得到了单个事务的保证(不太准确)，没有说明多个事务同时读写相同数据时数据可见性是怎么规定的。
+Considering only ACD from ACID (since Isolation is the topic of discussion here), we mostly only get guarantees for a single transaction (not entirely accurate) and do not describe the visibility rules when multiple transactions read and write the same data simultaneously.
 
-一个自然而然的问题是：
-*事务 A 执行过程中，事务 B 是否可以读取事务 A 的变更？ 假如可以读取，但是后面事务 A 回滚了所有操作怎么办？*
+A natural question arises:
+*During the execution of Transaction A, can Transaction B read the changes made by Transaction A? If it can, what happens if Transaction A rolls back all its operations afterward?*
 
-这个数据异常就是 Dirty Read 和 Dirty Write，简单说就是读写了未提交的数据。
+This type of data anomaly is called Dirty Read and Dirty Write, which means reading or writing uncommitted data.
 
 #### Dirty Read
 
@@ -141,7 +146,7 @@ isolation level: read uncommitted
 | t5   | commit;  | (A=10) |
 
 
-在这个并发读写的例子中，我们看到 Transaction1 读取了 Transaction2 还没有提交的 A=20 值，导致了 Transaction1 基于一个不存在的数据 A=20 进行了某些业务操作，甚至是后续的数据库读写操作。
+In this concurrent read-write example, we see that Transaction1 read the uncommitted value A=20 from Transaction2, which led Transaction1 to perform business logic based on non-existent data (A=20), possibly impacting further database operations.
 
 #### Dirty Write
 
@@ -154,28 +159,29 @@ isolation level: read uncommitted
 |------|-------|----|
 | t0   | start transaction; | start transaction; |
 | t1   | update A=11; |  |
-| t2   |  | udate A=12; |
+| t2   |  | update A=12; |
 | t3   |  | commit;  |
 | t4   | rollback; |   |
 | t5   |（A=10） |   |
 
-在这个并发写的例子中，我们看到 Transaction1 和 Transaction2 并发更新 A 的值，在 Transaction2 提交之后，Transaction1 错误回滚了不属于自己的更新，所以叫 Dirty Write。
+In this concurrent write example, Transaction1 and Transaction2 update the value of A simultaneously. After Transaction2 commits, Transaction1 erroneously rolls back updates that do not belong to it, resulting in Dirty Write.
 
-对于 Dirty Read 和 Dirty Write 这种数据异常，MySQL 提供 Read Committed 这种 isolation level 来解决这个问题，数据库内部可能是采用对 write 加排他锁阻塞 read或者多版本读取 old version data 方式保证只能看到 committed 的数据。
+To handle these data anomalies, MySQL offers the Read Committed isolation level. Internally, it may use mechanisms such as exclusive locks on writes to block reads or multi-version reads (old version data) to ensure only committed data is visible.
 
 ### Read Skew/Non-repeatable Read/Phantom Read And Repeatable Read
 
-解决了读取 uncommitted 数据的数据异常之后，我们获取了一个数据操作 guarantee => 在 read committed 下看到的数据要么是数据提交前的，要么是提交后的。
+Once the issue of reading uncommitted data is resolved, we achieve a guarantee for data operations where:
+*Under read committed, the data seen is either before or after a commit.*
 
-在这个保证下，会出现的一个问题是：
-*假如事务 A 在事务 B 开始前读取了一次 A 值，在事务 B 结束后又读取了一个 A 值，而事务 B 更新了 A 值，那前后两次读取的值就不一样了。这种算是数据异常吗？底层数据是一致的，但是读到的数据却是部分新部分旧的。*
+With this guarantee, a new issue arises:
+*What if Transaction A reads a value before Transaction B starts, then reads it again after Transaction B updates it? Is this data anomaly? The underlying data is consistent, but the read data is a mix of new and old values.*
 
 #### Read Skew/Non-repeatable Read
 
-这就是我们要说的 Read Skew/Non-repeatable Read 的数据异常。 
+This data anomaly is known as Read Skew/Non-repeatable Read.
 
-Read Skew 简单说就是 *Partial Read*, 也就是读取到了部分旧值，读取到了部分新值。  
-Non-repeatable Read 也可以认为是一种 read skew，它是指在一个事务中对同一份数据，前后两次读取的值不同，前面读取到了旧值，后面读取到了新值。
+Read Skew refers to *Partial Read*, where some old and some new values are read. Non-repeatable Read is a type of read skew, where a transaction reads different values for the same data at different times.
+
 ```
 initial: A1=10, A2=10;
 isolation level: read committed
@@ -190,12 +196,12 @@ isolation level: read committed
 | t4   | select A2 from table B; (A2=15) | |
 | t5   | commit; (A1=10;A2=15) | (A1=5;A2=15) |
 
-从 Transaction1 获取的结果上看，它读取了部分旧数据 A1=10, 读取了部分新数据 A2=15, 但是并没有违反读取 committed data 的规则，同时存储的数据状态也是一致的 A1=5, A2=15。
-
-这个数据异常会比较微妙，从数据的语义约束上看，我们希望数据是从一个一致性状态过渡到另一个一致性状态，比如转账场景下从转账前的一致性状态过渡到转账后的一致性状态。在这个场景下，数据变更的确满足一致性要求，但是读取操作看到的数据不满足一致性要求。
+Transaction1 read old data (A1=10) and new data (A2=15) without violating the rule of reading committed data. However, the data consistency requirement during the read is not met, even though the underlying data is consistent (A1=5, A2=15).
 
 #### Phantom Read
-同一个事务中除了 partial read 之外，还可能出现前后读取到不同的数据。比如：
+
+Besides partial reads, a transaction may read different data sets at different times. For example:
+
 ```
 initial: Column A has two rows(A1=10, A2=10)
 isolation level: read committed
@@ -210,20 +216,21 @@ isolation level: read committed
 | t4   | select A from table B where A=10;; (A1=10;A2=10;A3=10) | |
 | t5   | commit;|  |
 
-可以看到 Transaction1 在同一个事务中读到的数据是不一样，后面一次 read 读取到了更多数据。
+You can see that Transaction1 reads different data within the same transaction, with the latter read retrieving more data.
 
-这些数据不一致在一些 long transaction 中出现的概率会比较大，比如数据全量备份和分析型查询。
+These data inconsistencies are more likely to occur in long transactions, such as full data backups and analytical queries.
 
-MySQL 提供 Repeatable Read(RR) 的 isolation level 解决这种数据异常，有些数据库称为 Snapshot Isolation(SI)。实现技术上大致为：
-1. 对于并发读写，使用 MVCC(Multi-Version Concurrent Control) 技术，每份数据维护多个版本，读者只能读取到读取操作之前已经提交的数据，无法读取正在提交或者未来提交的数据，通过单调递增的 version 表达时序关系。
-再通俗理解就是： 读的是历史数据，所以不会被写阻塞。
-2. 对于并发写写，采用 2PL(2 Phase Lock)的形式串行化数据访问，只有事务提交才会释放自己持有的所有锁。
+MySQL provides the Repeatable Read (RR) isolation level to address such data anomalies, which some databases refer to as Snapshot Isolation (SI). The implementation techniques are roughly as follows:
+1. For concurrent reads and writes, the MVCC (Multi-Version Concurrent Control) technique is used. Each piece of data maintains multiple versions, and readers can only read data that has been committed before the read operation, not data that is being committed or will be committed in the future. The temporal relationship is expressed through monotonically increasing versions.
+In simpler terms: reading historical data, so it won't be blocked by writes.
+2. For concurrent writes, the 2PL (2 Phase Lock) method is used to serialize data access. Only when a transaction commits will it release all the locks it holds.
 
 > NOTE:  
-> MySQL 的 RR 和 ANSI SQL 基于锁定义的 RR 是不同的概念，MySQL RR 在实现上更加靠近 SI(MVCC 机制)，而 ANSI SQL RR 是通过在 read 时持有 shared lock 直到事务结束实现 RR(禁止其他 write)。  
-> 另外一个不同的地方在与，ANSI SQL RR 的实现方式决定了无法解决 Phantom Read 的问题，因为单纯的行锁无法阻止间隙插入，而 MySQL RR 使用了 MVCC 机制，因为 new insert data 的 commit id 更大，所以是不会被看到的。  
+> MySQL's RR is different from the ANSI SQL RR defined based on locks. MySQL RR is more akin to SI (MVCC mechanism) in implementation, while ANSI SQL RR achieves RR by holding shared locks during reads until the transaction ends (prohibiting other writes).  
+> Another difference is that the ANSI SQL RR implementation cannot solve the Phantom Read problem because simple row locks cannot prevent gap inserts. MySQL RR uses the MVCC mechanism, and since the commit ID of newly inserted data is larger, it won't be seen.
 
-对于上面的例子，由于 Transaction1 开始读时 Transaction2 的事务还没有结束，所以 Transaction1 看不到 Transaction2 做的所有变更，从而保证了读到的数据满足一致性要求。
+In the above example, since Transaction1 starts reading before Transaction2's transaction ends, Transaction1 cannot see all the changes made by Transaction2, thus ensuring the consistency of the read data.
+
 ```
 initial: A1=10, A2=10;
 isolation level: repeatable read/snapshot isolation
@@ -238,25 +245,25 @@ isolation level: repeatable read/snapshot isolation
 | t4   | select A2 from table B; (A2=10) | |
 | t5   | commit; (A1=10;A2=10) | (A1=5;A2=15) |
 
-可以看到 Transaction1 看到的是上一个一致状态(A1=10;A2=10)，底层是新的一致性状态(A1=5;A2=15)。
+You can see that Transaction1 sees the previous consistent state (A1=10; A2=10), while the underlying state is the new consistent state (A1=5; A2=15).
 
 > NOTE:  
-> MySQL 的 RR 除了 MVCC 之外，还使用了 gap lock，这里有点反直觉的是 newly inserted/deleted records 的 XID 应该都大于读事务的 XID，所以 MVCC 就可以实现一致性读，为什么还需要 gap lock?  
-> 因为 MVCC 解决的是 snapshot read 的幻读问题，没有解决 current read 的幻读问题。current read 由于要读取最新的数据版本，所有需要加 read lock，此时如果没有 gap lock，无法解决新插入数据被同一个读事务访问到的问题。TiDB 的 SI 隔离基本本质上是 MySQL MVCC + snapshot read，没有 current read + gap lock。
-
+> Besides MVCC, MySQL's RR also uses gap locks. It might seem counterintuitive that the XID of newly inserted/deleted records should be greater than the XID of the read transaction, so MVCC can achieve consistent reads. Why do we still need gap locks?  
+> Because MVCC solves the phantom read problem for snapshot reads but does not solve the phantom read problem for current reads. Current reads need to read the latest data version, so they require a read lock. Without gap locks, new inserted data could be accessed by the same read transaction, causing issues.
 
 ### Write Skew/Phantom And Serializable
-Repeatable Read（RR)/Snapshot Isolation(SI) 可以极大得提高数据库的事务读写并发，并且可以保证读事务可以一直获取到一个一致状态(虽然可能是旧的)，所以在非常多的业务场景下都会使用 RR 或者 SI 作为隔离级别。
+Repeatable Read (RR) / Snapshot Isolation (SI) can greatly improve the concurrency of database transaction reads and writes and ensure that read transactions can always obtain a consistent state (although it may be old). Therefore, RR or SI is used as the isolation level in many business scenarios.
 
-但是 RR 和 SI 就可以实现一般用户心目中的 serializability 了吗？ *还不是*。
+But does RR and SI achieve the serializability that most users expect? *Not yet*.
 
-这里出现问题的关键就在于：
-*RR 和 SI 读取到的都是历史一致状态，也就是说用户如果基于一个旧的状态做一些更新，同时这个更新是和旧状态相关的，那最后可能导致数据语义上的约束被破坏。*
+The key issue here is:
+*RR and SI read historical consistent states, meaning that if users make updates based on an old state, and this update is related to the old state, it may break the semantic constraints of the data.*
 
-表述得有点抽象，我们举个具体的例子说明一下，分析的过程中要记住**基于历史状态做判断** 这个出问题的点。
+This might sound abstract, so let's illustrate with a specific example. Remember the point of **making judgments based on historical states** during the analysis.
 
 #### Update Lost
-RR 和 SI 距离 serializability 最远的距离我认为是 **Update Lost**，这是一种非常符合直觉但是却总是得到错误结果的操作，也就是 read-modify-update。举个例子：
+The furthest distance between RR and SI and serializability, in my opinion, is **Update Lost**. This is a very intuitive operation that often yields incorrect results, known as read-modify-update. For example:
+
 ```
 initial: A=10
 isolation level: rr or si
@@ -265,21 +272,22 @@ isolation level: rr or si
 | timestamp | Transaction1 |  Transaction2 |
 |------|-------|----|
 | t0   | start transaction; | start transaction; |
-| t1   | select A from table B;(A=10) |  |
-| t2   |  | select A from table B;(A=10) |
-| t3   | update A=11 in table B;(set A=A+1) |  |
-| t4   |commit; |   |
-| t5   |  | update A=11 in table B;(set A=A+1)   |
+| t1   | select A from table B; (A=10) |  |
+| t2   |  | select A from table B; (A=10) |
+| t3   | update A=11 in table B; (set A=A+1) |  |
+| t4   | commit; |   |
+| t5   |  | update A=11 in table B; (set A=A+1)   |
 | t6   | | commit;  |
 
-这里在 rr or SI 隔离级别下读取了 A 的旧值（A=10），业务语义上是对值进行自增，serializability 下期望 A=12，但是由于*基于历史状态做判断*，导致了 Transaction1 和 Transaction2 都设置了 A=11, 出现了更新丢失。
+Here, under the rr or SI isolation level, the old value of A (A=10) is read. The business semantics are to increment the value. Under serializability, we expect A=12, but due to *making judgments based on historical states*, both Transaction1 and Transaction2 set A=11, resulting in an update lost.
 
-这种场景下，想要规避 update lost，可以有 2 种做法：
-1. 在 read 时对所有的数据加上 exclusive lock，避免被其他事务读写，从而串行化不同事务。缺点是并发读写效率低。
-2. 乐观处理机制，在每次 read 时记录下 version，在 commit 时检查所有 read 过的数据 version 是否变更过，变更过就回滚或者重启事务。缺点是热点读写数据可能造成频繁事务重启。 
+To avoid update lost in this scenario, there are two approaches:
+1. Add an exclusive lock to all data during the read to prevent other transactions from reading or writing, thus serializing different transactions. The downside is low concurrent read/write efficiency.
+2. Use an optimistic approach, recording the version during each read and checking if the version of all read data has changed during commit. If it has changed, rollback or restart the transaction. The downside is that hot read/write data may cause frequent transaction restarts.
 
 #### Write Skew
-*基于历史状态做判断* 导致数据异常的另外一个有名例子是 write skew，它是一种 read-check-write 操作模式下，write 导致 check 不再成立的一种违反数据语义的异常。举个例子：
+Another famous example of data anomalies caused by *making judgments based on historical states* is write skew. It is an anomaly that violates data semantics in a read-check-write operation mode, where the write causes the check to no longer hold. For example:
+
 ```
 initial:  A1=1, A2=1
 isolation level: rr or si
@@ -295,27 +303,27 @@ isolation level: rr or si
 | t5   | commit; (A1=0;A2=1) |  |
 | t6   | |commit; (A1=0;A2=0) |
 
-在这个例子中，我们可以看到，Transaction1 和 Transaction2 都希望在 A1+A2\==2 的前提下，将其中一个值设置成0, 从而保证最后 A1+A2\==1，但是实际的运行结果是 A1+A2\==0。
+In this example, we can see that both Transaction1 and Transaction2 aim to set one of the values to 0 under the condition that A1+A2==2, ensuring that the final result is A1+A2==1. However, the actual result is A1+A2==0.
 > NOTE:  
-> 如果想象成医院值班医生就会比较有意义。每天需要一名值班医生，结果原本值班的两个医生查看状态后都认为对方会值班，都请假了，关键是请假都通过了，导致最后没有医生值班。
+> It makes more sense if you imagine it as doctors on duty in a hospital. Every day, one doctor needs to be on duty. Both doctors originally on duty check the status and think the other will be on duty, so they both take leave. The key point is that both leaves are approved, resulting in no doctor on duty.
 
-也就是说在 RR 和 SI 隔离级别下，基于历史状态下做一些数据变更，如果最后影响了对应的历史状态的话，就会出现这种 write skew 的*违反数据语义约束*的数据异常。
+In other words, under the RR and SI isolation levels, making data changes based on historical states can lead to write skew, a data anomaly that violates data semantic constraints.
 
-这种 write skew 的现象不只是出现在 2 个事务中，也可能出现在多个事务的*级联操作*中，导致难以排查的数据异常。
+This write skew phenomenon does not only occur in two transactions but can also appear in cascading operations of multiple transactions, leading to hard-to-detect data anomalies.
 
-解决这个问题的关键还是**基于历史状态做判断**，只要每次读取的时候都读取**最新的状态**，并禁止其他读写，就可以部分解决这个问题(见 Phantoms 小节)，但是这样会降低数据库读写并发的性能。
+The key to solving this problem is **making judgments based on historical states**. As long as the latest state is read each time and other reads/writes are prohibited, this problem can be partially solved (see the Phantoms section). However, this will reduce the concurrent read/write performance of the database.
 
-另一种解决方案是： 业务级别的周期性 recheck，因为数据库不提供这种自动化 recheck 语义约束的 feature。(foreign key 可以认为是一种业务级别的语义约束)。
+Another solution is periodic recheck at the business level because the database does not provide this automated recheck semantic constraint feature (foreign keys can be considered a business-level semantic constraint).
 
-这种 write skew 的违反语义约束是实际开发过程中*难以察觉，难以排查*的数据异常。
+This write skew violation of semantic constraints is a data anomaly that is *difficult to detect and troubleshoot* in actual development.
 
 #### Phantom
-另一类特殊的 write skew 是幻象 Phantom，在 RR 中我们讨论过 Phantom Read，那个问题已经被 RR 和 SI 解决了，因为 new insert 有更大的 transaction id，所以不会被看到。
+Another special type of write skew is the Phantom. In RR, we discussed Phantom Read, which has been solved by RR and SI because new inserts have larger transaction IDs and thus won't be seen.
 
-这里的 write skew phantom 是一个*更加微妙*的场景。在前面的分析中，我们知道 write skew 的核心问题是 *基于历史状态做判断*， 其中一个解决方案是：
-只要每次读取的时候都读取*最新的状态*，并禁止其他读写，就可以部分解决这个问题。
+Here, the write skew phantom is a *more subtle* scenario. From the previous analysis, we know that the core issue of write skew is *making judgments based on historical states*. One solution is:
+As long as the latest state is read each time and other reads/writes are prohibited, this problem can be partially solved.
 
-基于这个原则，我们把上面的例子修改下：
+Based on this principle, let's modify the above example:
 ```
 initial:  A1=1, A2=1
 isolation level: rr or si
@@ -332,12 +340,12 @@ isolation level: rr or si
 | t6  | |if(A1+A2==2) update A2=0 in table B;(do nothing)|
 | t7  | |commit; (A1=0;A2=1) |
 
-可以看到 Transaction1 在 read A1,A2 的时候加了一个排他锁，导致除了本事务之外其他所有的 read/write 都要等到 Transaction1 事务提交后才能继续运行，从而串行化了事务执行，规避了 write skew。
+We can see that Transaction1 adds an exclusive lock when reading A1 and A2, causing all other reads/writes to wait until Transaction1 commits, thus serializing the transaction execution and avoiding write skew.
 
-这里有个小问题出现了：
-*我们是通过对已存在的记录加锁规避的 write skew，那对于两个记录之间的 gap 而言，由于没有锁串行化，那怎么防止用户操作呢？*
+Here, a small problem arises:
+*We avoid write skew by locking existing records. How do we prevent user operations for gaps between two records since there is no lock serialization?*
 
-我们用下面的例子解释这个问题：
+Let's explain this problem with the following example:
 ```
 initial:  Column A has two rows(A1=1,A2=1)
 isolation level: rr or si
@@ -349,29 +357,38 @@ isolation level: rr or si
 | t1   | select A from table B where A>=1 and A<=3 for update; (A1=1;A2=1) | |
 | t2   |  |  insert A3=2 in table B;  |
 | t3   | |commit; (A1=1;A2=1;A3=2;) |
-| t4   | if(sum(A)==2) do something;  |  |
+| t4   | if(sum(A)==2) { /* perform some business logic based on the sum of A */ };  |  |
 | t5   | commit; |  |
 
-在这个例子中，我们可以看到，虽然 Transaction1 为了读取到最新的数据并且防止其他事务读写该数据，加了排他锁，但是还是没有能够防止 Transaction2 insert 新的数据，导致 if(sum(A)==2) 也变成了*历史状态*，就可能**违反数据语义约束**。
+In this example, we can see that although Transaction1 adds an exclusive lock to read the latest data and prevent other transactions from reading/writing it, it still cannot prevent Transaction2 from inserting new data, causing if(sum(A)==2) to become a *historical state*, potentially **violating data semantic constraints**.
 
-对于这类数据异常，一种方法是除了 record lock 之后，还要加上 *gap lock*，比如 MySQL 的 next-key lock(record lock+gap lock)。
+To handle such data anomalies, one method is to add a *gap lock* in addition to the record lock, such as MySQL's next-key lock (record lock + gap lock). 
 
-我们在上面所讲的数据异常，是从最简单的 read uncommitted 开始，一步一步通过技术约束数据可见性，从而提供更强大的 guarantee。到了 RR 和 SI 隔离级别时，明显可以发现想要解决 Update Lost 和 Write Skew 就需要对读数据进行加锁或者追踪 version 变更，这些都是开销很大的操作。
+A gap lock is a lock on the gap between index records, which prevents other transactions from inserting new rows into the gap. For example, if you have records with values 1 and 5, a gap lock on the range (1, 5) would prevent any new records with values between 1 and 5 from being inserted. This ensures that no new records can be added that would violate the constraints checked by the current transaction.
 
-解决了所有的数据异常问题，就可以认为数据库提供了 serializability 的隔离级别。目前看能实现 Serializability 且性能较好的是 *[Serializable Snapshot Isolation](https://dl.acm.org/doi/10.1145/1620585.1620587)*，这是 PgSQL 用来实现 Serializability 的算法。
+Example:
 
-## 总结
-不同隔离级别都是对数据一致性和性能之间的 tradeoff。
+The data anomalies discussed above start from the simplest read uncommitted and gradually constrain data visibility through technical means to provide stronger guarantees. At the RR and SI isolation levels, it is evident that solving Update Lost and Write Skew requires locking read data or tracking version changes, which are costly operations.
 
-本文首先提及业务对事务的迷思---串行化的事务执行(serializability)，然后从 weak isolation level 开始逐步分析可能出现的 data anomaly:
-1. Read Uncommitted(RU) => Dirty Read, Dirty Write
-2. Read Committed(RC) => Read Skew, Non-repeatable Read, Phantom Read
-3. Repeatable Read(RR)/SnapShot Isolation(SI) => Write Skew, Phantom
-4. Serializable Snapshot Isolation(SSI)/Serializable
+Solving all data anomaly problems means the database provides a serializability isolation level. Currently, the algorithm that achieves Serializability with good performance is *[Serializable Snapshot Isolation](https://dl.acm.org/doi/10.1145/1620585.1620587)*, used by PgSQL to implement Serializability.
 
-本文还提及了一些和 MySQL 相关的实现 isolation level 的并发控制技术，也就是 MVCC + 2PL，还有其他一些不同的并发控制技术，比如：
-1. Timestamp Order
-2. Commitment Order
-3. Serialization Graph checking
+## Summary
+Different isolation levels are a trade-off between data consistency and performance.
 
-读者有兴趣可以自行查找相关的数据库资料。 
+This article first mentions the common perception of transactions in business—serialized transaction execution (serializability). It then analyzes potential data anomalies starting from weak isolation levels:
+1. Read Uncommitted (RU) => Dirty Read, Dirty Write
+2. Read Committed (RC) => Read Skew, Non-repeatable Read, Phantom Read
+3. Repeatable Read (RR)/Snapshot Isolation (SI) => Write Skew, Phantom
+4. Serializable Snapshot Isolation (SSI)/Serializable
+
+The article also touches on concurrency control techniques related to MySQL's implementation of isolation levels, namely MVCC + 2PL, and other concurrency control methods such as:
+1. Timestamp Ordering  
+   This technique assigns timestamps to transactions to ensure a consistent order of execution. [Read more](https://en.wikipedia.org/wiki/Serializability#Timestamp-based_protocols)
+
+2. Commitment Ordering  
+   This method ensures that transactions are committed in a specific order to maintain consistency. [Read more](https://en.wikipedia.org/wiki/Commitment_ordering)
+
+3. Serialization Graph Checking  
+   This technique involves constructing a graph of transactions to detect cycles that indicate conflicts. [Read more](https://en.wikipedia.org/wiki/Serializability#Serialization_graph)
+
+Readers interested can look up additional database resources. 
