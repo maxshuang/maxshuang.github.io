@@ -55,7 +55,7 @@ In describing graphs and graph algorithms, we use the object-oriented language C
 
 Whether it is a directed graph or an undirected graph, the graph behavior can be defined as follows:
 
-```
+```cpp
 /**
  * @struct Graph
  */
@@ -96,7 +96,7 @@ C++ iterators, while hiding the internal implementation of the iterator, focus m
 
 To reuse std::algorithm algorithms and encapsulate internal container implementation details, ListIterator and Iterator are defined. (This part needs to be rewritten later to avoid relying on std::algorithm, making the algorithm description more dependent on interface behavior!!!)
 
-```
+```cpp
 // std::algorithm style iterator interface
 template <class Tp, class Ptr, class Ref>
 class Iterator : public std::iterator<std::forward_iterator_tag, Tp,
@@ -143,7 +143,7 @@ length array: [0, 2, 4], indicating the starting position of edges in the edge a
 
 4. Chain-forward array (chained array) representation of graphs combines the dynamic incrementality of linked lists with the data locality of arrays, often used in ACM problem-solving. For example:
 
-```
+```cpp
 const int MaxE=1000;
 const int MaxV=100;
 
@@ -179,7 +179,7 @@ Depth-First Search (DFS) of a graph prioritizes visiting successor vertices in t
 
 DFS can be implemented well using recursion to backtrack through vertices. To avoid revisiting the same vertex, a marked_ array is used to mark vertices that have been visited. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/dfs_path.cpp).
 
-```
+```cpp
 void DfsPaths::dfs(const UndirectedGraph& G, int v) {
     this->marked_[v] = true;
     auto pair = G.Adj(v);
@@ -198,7 +198,7 @@ DFS has a time complexity of $O(E+V)$, where each edge is visited once (undirect
 
 BFS requires a queue to achieve FIFO, where each visited vertex enqueues all its unvisited adjacent vertices. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/bfs_path.cpp).
 
-```
+```cpp
 void BfsPaths::bfs(const UndirectedGraph& G, int v) {
     std::queue<int> q;
     this->marked_[v] = true;
@@ -232,7 +232,7 @@ Cycle detection is a common application of graphs, and the method is straightfor
 
 In the implementation of cycle detection for undirected graphs, it is important to exclude the starting vertex to avoid false positives. For example, for edge <2, 3>, if DFS visits 3 from 2, 3 may visit 2 again along the original edge <2, 3>, leading to a false positive. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/cycle.hpp).
 
-```
+```cpp
 void dfs(const UndirectedGraph &g)
 {
     for (int i = 0; i < g.V(); ++i)
@@ -286,7 +286,7 @@ Another interesting property of undirected graphs is connectivity. Since edges i
 
 A single DFS can visit all vertices in a connected component, so running DFS on each vertex in the graph can determine the number of connected components. Of course, vertices that have already been visited do not need to run DFS again. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/undirected_graph/connected_component.hpp).
 
-```
+```cpp
 void ConnectedComponent::dfs(const UndirectedGraph &G)
 {
     // run dfs for all vertices, but skip those which have been visited
@@ -326,7 +326,7 @@ Cycle detection in directed graphs is similar to undirected graphs, achieved by 
 
 The implementation of cycle detection is as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/dag.hpp).
 
-```
+```cpp
 void dfs(const Digraph &G)
 {
     for (int i = 0; i < G.V() && !has_cycle_; ++i)
@@ -405,7 +405,7 @@ We can see that the post-order traversal, which visits child nodes before the no
 
 [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/topological.hpp).
 
-```
+```cpp
 void dfs(const Digraph &g)
 {
     for (int i = 0; i < g.V() && !has_cycle_; ++i)
@@ -469,7 +469,7 @@ A single DFS starting from 1 can determine that {1, 2}, {1, 3}, and {2, 3} are r
 
 A brute-force solution can solve this problem by running DFS from each vertex, thus determining all-pairs reachability. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/transitive_closure.hpp).
 
-```
+```cpp
 TransitiveClosure(const Digraph &g)
 {
     for (int i = 0; i < g.V(); ++i)
@@ -487,7 +487,7 @@ The time complexity of the DFS version of the transitive closure is $O(V*(E+V))$
 
 For dense graphs, using an adjacency matrix $graph[V][V]$ to represent the graph, the reachability can be determined by traversing all intermediate vertices between any two vertices. This is essentially a brute-force traversal, known as the Floyd-Warshall Algorithm. The time complexity is $O(V^{3})$, and the space complexity is $O(V^{2})$. [Code source](https://www.geeksforgeeks.org/transitive-closure-of-a-graph/).
 
-```
+```cpp
 /* Add all vertices one by one to the
     set of intermediate vertices.
       ---> Before start of a iteration, 
@@ -564,7 +564,7 @@ To avoid visiting non-strongly connected component adjacent vertices, we need to
 
 This is the KosarajuSCC algorithm, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/directed_graph/strongly_connected_components.hpp).
 
-```
+```cpp
 KosarajuSCC(const Digraph& g): marked_(g.V(), false), id_(g.V(), 0), count_(0){ 
     std::vector<int> reverse_order(g.V());
     // 1,2: get reverse postorder traversal result of reverse graph 
@@ -709,7 +709,7 @@ choose: <1, 4, 5.1>  // NOT LEGAL !!!
 
 The Lazy PrimMST algorithm is implemented as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/lazy_prim_mst.hpp).
 
-```
+```cpp
 LazyPrimMST(const UndirectedGraph &g) : marked_(g.V(), false), mst_weight_(0.0)
 {
     // initialize and build a cut
@@ -773,7 +773,7 @@ MST edge set:  {<1, 3, 2.1>, <3, 2, 1.0>}
 
 The implementation of the PrimMST algorithm relies on IndexPriorityQueue, a variant of PriorityQueue that supports associating each key with an external index to directly modify the PriorityQueue key based on the external index and then adjust to maintain the heap property. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/prim_mst2.hpp).
 
-```
+```cpp
 PrimMST(const UndirectedGraph &g) : edge_to_(g.V()), marked_(g.V(), false),
                                          weight_to_(g.V(), std::numeric_limits<double>::infinity()), mst_weight_(0.0), pq_(g.V())
 {
@@ -824,7 +824,7 @@ The correctness of this algorithm can also be proven by contradiction: if an edg
 
 The algorithm implementation is as follows, relying on the Union-Find algorithm to determine if an edge is a crossing edge. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/minimum_spanning_trees/kruskal_mst.hpp).
 
-```
+```cpp
 KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf_(g.V()), mst_weight_(0.0) {
     while(!pq_.empty() && mst_edges_.size() < g.V()-1) {
         auto e = pq_.top();
@@ -839,6 +839,7 @@ KruskalMST(const UndirectedGraph& g): pq_(g.Edges().first, g.Edges().second), uf
 
 The time complexity of the KruskalMST algorithm is $O(E*logE)$, where Union-Find can perform Connected and Union operations in nearly $O(1)$ time, and each heap adjustment has a time complexity of $O(logE)$, with $O(E)$ adjustments.  
 The space complexity is $O(E)$, as the number of edges stored in the priority queue is $O(E)$.
+
 ### Directed Acyclic Graph (DAG) and AcyclicSP Algorithm
 
 When there are negative weights in the graph, the DijkstraSP algorithm cannot be used because the distance from the intermediate vertex to the source vertex is not increasing, so using a greedy algorithm to select the closest vertex to the source vertex as the SPT vertex in each round cannot provide theoretical guarantees.
@@ -864,7 +865,7 @@ because we have no idea when we can get the minimum dist in a casual relax seque
 
 The implementation based on the DAG topological order is as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/acyclicSP.hpp).
 
-```
+```cpp
 AcyclicSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
 {
     dist_to_[s] = 0.0;
@@ -934,7 +935,7 @@ The Bellman-Ford algorithm can be considered a brute-force solution, theoretical
 
 The above description is the Lazy Bellman-FordSP algorithm, which includes the source vertex and directly performs V rounds of relaxation. [Complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/lazy_Bellman_Ford.hpp).
 
-```
+```cpp
 LazyBellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity())
 {
     dist_to_[s] = 0.0;
@@ -1000,7 +1001,7 @@ A more efficient Bellman-FordSP algorithm only uses vertices updated in the prev
 
 The specific implementation is as follows, [complete implementation link](https://github.com/maxshuang/Algorithm-Data-Structure-Practice/tree/main/algo_ds/algorithm/graph/shortest_paths/Bellman_Ford.hpp).
 
-```
+```cpp
 BellmanFordSP(const Digraph &g, int s) : src_(s), edge_to_(g.V()), dist_to_(g.V(), std::numeric_limits<double>::infinity()), on_que_(g.V(), false)
 {
     dist_to_[s] = 0.0;
