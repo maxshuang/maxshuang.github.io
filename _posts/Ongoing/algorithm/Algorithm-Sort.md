@@ -309,6 +309,60 @@ int partition(int *vec, int l, int r)
 
 在这个实现中，我们可以看到，当出现 i\<j 的场景时，可能出现 vec[j] \<= pivot 或者 vec[i] \>= pivot， 为了不违反 [j, r] >= pivot 的不变式，需要用 pivot 进行修正。
 
+### Lomuto Partition
+上面的实现属于 Hoare Partition 方案，它使用双指针从两端向中间收缩。另一种常见的划分方案是 [Lomuto Partition](https://en.wikipedia.org/wiki/Quicksort#Lomuto_partition_scheme)，它只使用一个正向扫描的指针，实现上更加简洁直观，也是 [算法导论](https://edutechlearners.com/download/Introduction_to_algorithms-3rd%20Edition.pdf) 中使用的方案。
+
+Lomuto Partition 一般选择数组末尾元素作为 pivot(选择完后可以交换到末尾)，然后维护一个指针 i 记录 *小于等于 pivot* 区域的右边界，指针 j 从左向右扫描，遇到不大于 pivot 的元素就将其交换到左侧区域。
+
+同样使用 loop invariant 保证正确性：
+
+```
+check range: [l, r], pivot = vec[r]
+keep the following invariant for any situation:
+1. vec[l..i] <= pivot
+2. vec[i+1..j-1] > pivot
+3. vec[j..r-1] not sure
+4. vec[r] == pivot
+```
+
+对应的实现：
+
+```
+// check range: [l, r]
+int partition_lomuto(int *vec, int l, int r)
+{
+    // select a proper pivot, then exchange to pos `r`
+    int pivot = vec[r];
+
+    // initial state:
+    // meet: vec[l..i] <= pivot, no data here (i = l-1)
+    // meet: vec[i+1..j-1] > pivot, no data here (j = l)
+    // meet: vec[j..r-1] not sure, original unsorted data
+    // meet: vec[r] == pivot
+    int i = l - 1;
+    for (int j = l; j < r; j++)
+    {
+        // after this if, vec[l..i] <= pivot still holds
+        // vec[i+1..j] > pivot still holds
+        if (vec[j] <= pivot)
+            exchange(vec, ++i, j);
+    }
+
+    // fix vec[r] == pivot to meet:
+    // vec[l..cut-1] <= vec[cut] <= vec[cut+1..r]
+    exchange(vec, ++i, r);
+    return i;
+}
+```
+
+**Lomuto Partition 和 Hoare Partition 的对比:**
+
+1. **代码更简洁**： 只有一层 for 循环，没有 Hoare Partition 中双指针相遇时的各种 corner case，更适合教学和面试场景。
+2. **更容易产生 data skew**： Lomuto Partition 使用 `vec[j] <= pivot` 的判断条件，会把所有等于 pivot 的元素都划分到左边区间，这正是我们在前文 [实现中的 data skew](#实现中的-data-skew) 章节讨论过的方式 2 划分。因此当数组中存在大量重复元素时，Lomuto Partition 会退化到 worst time complexity $O(N^2)$，而经过修正的 Hoare Partition 可以将重复元素较为均衡地分布在两侧。
+3. **平均 exchange 次数更多**： Hoare Partition 每次交换会同时处理左右两侧的两个 *异常* 元素，Lomuto Partition 每次只能处理一个，所以平均常数系数会更大。
+
+正因为这些差异，实际生产级别的排序库中(比如 C++ std::sort 使用的 Introsort)基本上都是选择 Hoare Partition 的变种作为核心的 2-way partition 实现。
+
 ### 3-way quick sort
 
 对于有大量重复元素的数组，使用 3-way quick sort 可以实现 Average Time Complexity O(N) 的性能，该算法排序后大致的样子是：
